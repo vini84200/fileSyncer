@@ -12,7 +12,7 @@
 #include <unistd.h>
 #include <vector>
 
-#include "MessageComunication.h"
+#include "../common/MessageComunication.h"
 #define MYPORT "3490"
 #define BACKLOG 5
 
@@ -96,6 +96,8 @@ void client_handler(ClientInfo info) {
     // Answer
 
     //send();
+
+    printf("Closing connection\n");
 
     close(info.socket_fd);
 

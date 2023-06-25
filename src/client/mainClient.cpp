@@ -10,7 +10,7 @@
 
 #include <arpa/inet.h>
 
-#include "MessageComunication.h"
+#include "../common/MessageComunication.h"
 
 #define PORT  "3490"
 #define MAXDATASIZE 100
