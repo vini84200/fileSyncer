@@ -12,11 +12,14 @@
 #include <unistd.h>
 #include <vector>
 
+#include <iostream>
+#include <fstream>
+
 #include "../common/MessageComunication.h"
 #define MYPORT "3490"
 #define BACKLOG 5
 
-#define MSG_MAXSIZE 1024 * 1024
+#define MSG_MAXSIZE 1024 * 1024 * 24
 
 // Server
 
@@ -39,7 +42,7 @@ struct ClientInfo {
 };
 
 void client_handler(ClientInfo info) {
-    char buffer[MSG_MAXSIZE];
+    char *buffer = (char*) malloc(MSG_MAXSIZE);
     int total_msg_rcvd = 0;
     int headerSize = Header().getHeaderSize();
 
@@ -72,6 +75,12 @@ void client_handler(ClientInfo info) {
 
     int need_to_read = h.msg_size + headerSize;
 
+    if (need_to_read >= MSG_MAXSIZE) {
+        printf("Msg too big\n");
+        close(info.socket_fd);
+        return;
+    }
+
     while (total_msg_rcvd < (h.msg_size+headerSize)) {
         int thisrcv = recv(info.socket_fd, buffer + total_msg_rcvd, (need_to_read - total_msg_rcvd), 0);
         if (thisrcv == 0) {
@@ -92,6 +101,17 @@ void client_handler(ClientInfo info) {
     SealedMessage sm = SealedMessage::getFromBuffer(buffer);
     Message m = sm.getMessage();
     printf("Received message: %s\n", m.getBuffer());
+
+    // Create file
+    std::fstream fb;
+    fb.open("out.pdf", std::ios::out);
+    if (!fb.is_open()) {
+        printf("error opening file for write\n");
+        close(info.socket_fd);
+        return;
+    }
+    fb.write(m.getBuffer(), m.getSize());
+    fb.close();
 
     // Answer
 
@@ -117,9 +137,9 @@ int main() {
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;  // use IPv4 or IPv6, whichever
     hints.ai_socktype = SOCK_STREAM;
-    //hints.ai_flags = AI_PASSIVE;     // fill in my IP for me
+    hints.ai_flags = AI_PASSIVE;     // fill in my IP for me
 
-    getaddrinfo("127.0.0.1", MYPORT, &hints, &res);
+    getaddrinfo(NULL, MYPORT, &hints, &res);
 
     // make a socket:
 

@@ -7,6 +7,8 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <fstream>
+#include <iostream>
 
 #include <arpa/inet.h>
 
@@ -79,9 +81,24 @@ int main(int argc, char *argv[]) {
     freeaddrinfo(servinfo); // all done with this structure
 
     // COMUNICATION
+
+    std::fstream fb;
+    fb.open("../test.pdf", std::ios::binary | std::ios::in);
+    if (!fb.is_open()) {
+        printf("Error opening file");
+        exit(1);
+    }
+
+
+    std::vector<char> v;
+    for (char a; fb.get(a);fb.eof())
+        v.push_back(a);
+
+    printf("Size %d\n", v.size());
+
     char text[] = "Hello, world!";
 
-    Message m (text, strlen(text));
+    Message m (v.data(), v.size());
     SealedMessage sm (m);
 
     void  *buffer = sm.getSealedMessagePtr();
