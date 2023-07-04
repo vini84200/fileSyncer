@@ -12,7 +12,6 @@
 #include <iostream>
 
 #include <sys/inotify.h>
-// #include <inotify-syscalls.h>
 
 #include <arpa/inet.h>
 
@@ -40,7 +39,7 @@ bool diretorioExiste(const std::string& caminho) {
 // https://beej.us/guide/bgnet/html/split-wide/client-server-background.html
 int main(int argc, char *argv[]) {
 
-    int sockfd, numbytes, wd, fd;
+    int sockfd, numbytes, wd, file_descriptor;
     char buf[MAXDATASIZE], buffer_inotify[BUF_INOTIFY_LEN];
     struct addrinfo hints, *servinfo, *p;
     int rv;
@@ -102,14 +101,14 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    fd = inotify_init();
+    file_descriptor = inotify_init();
 
-    if (fd < 0) {
+    if (file_descriptor < 0) {
         std::cerr << "Erro ao inicializar o inotify" << std::endl;
         return 1;
     }
 
-    wd = inotify_add_watch(fd, stringPath.c_str(), IN_MODIFY | IN_CLOSE_WRITE);
+    wd = inotify_add_watch(file_descriptor, stringPath.c_str(), IN_MODIFY | IN_CLOSE_WRITE);
 
     if (wd < 0) {
         std::cerr << "Erro ao adicionar o watch para o diretório" << std::endl;
@@ -118,14 +117,13 @@ int main(int argc, char *argv[]) {
 
     // Esse while infinito trava a tela e imprime quando algum arquivo foi criado ou modificado no diretório informado
     while (true) {
-        int length = read(fd, buffer_inotify, BUF_INOTIFY_LEN);
+        int length = read(file_descriptor, buffer_inotify, BUF_INOTIFY_LEN);
         if (length < 0) {
             std::cerr << "Erro ao ler eventos do inotify" << std::endl;
             return 1;
         }
 
-        int i = 0;
-        while (i < length) {
+        for (int i = 0; i < length;) {
             struct inotify_event* event = (struct inotify_event*) &buffer_inotify[i];
             if (event->len) {
                 if ((event->mask & IN_MODIFY) || (event->mask & IN_CLOSE_WRITE)) {
@@ -161,9 +159,9 @@ int main(int argc, char *argv[]) {
 
     delete[] (char*)buffer;
 
-    inotify_rm_watch(fd, wd);
+    inotify_rm_watch(file_descriptor, wd);
 
-    close(fd);
+    close(file_descriptor);
 
     close(sockfd);
 
