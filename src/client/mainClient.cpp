@@ -31,10 +31,44 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-bool diretorioExiste(const std::string& caminho) {
+bool existe_sync_dir(const std::string& caminho) {
     return std::filesystem::exists(caminho) && std::filesystem::is_directory(caminho);
 }
 
+void adiciona_watcher(std::string syncDirPath, int *file_descriptor, int *wd) {
+    printf("\n\n%s\n\n", syncDirPath.c_str());
+    *file_descriptor = inotify_init();
+
+    if (*file_descriptor < 0)
+        std::cerr << "Erro ao inicializar o inotify" << std::endl;
+
+    *wd = inotify_add_watch(*file_descriptor, syncDirPath.c_str(), IN_MODIFY | IN_CLOSE_WRITE);
+
+    if (*wd < 0)
+        std::cerr << "Erro ao adicionar o watch para o diretório" << std::endl;
+}
+
+void verifica_modificacao(int *file_descriptor, char buffer_inotify[BUF_INOTIFY_LEN]) {
+    int length = read(*file_descriptor, buffer_inotify, BUF_INOTIFY_LEN);
+    if (length < 0)
+        std::cerr << "Erro ao ler eventos do inotify" << std::endl;
+
+    for (int i = 0; i < length;) {
+        struct inotify_event* event = (struct inotify_event*) &buffer_inotify[i];
+        if (event->len) {
+            if ((event->mask & IN_MODIFY) || (event->mask & IN_CLOSE_WRITE)) {
+                std::cout << "Arquivo modificado: " << event->name << std::endl;
+            }
+        }
+        i += EVENT_SIZE + event->len;
+    }
+}
+
+void fecha_watcher(int *file_descriptor, int *wd) {
+    inotify_rm_watch(*file_descriptor, *wd);
+
+    close(*file_descriptor);
+}
 
 // https://beej.us/guide/bgnet/html/split-wide/client-server-background.html
 int main(int argc, char *argv[]) {
@@ -87,52 +121,27 @@ int main(int argc, char *argv[]) {
     printf("client: connecting to %s\n", s);
 
     freeaddrinfo(servinfo); // all done with this structure
-
-    // COMUNICATION
     
+    // INOTIFY 
+
     std::stringstream ss; 
-    std::string stringPath;
+    std::string syncDirPath;
 
     ss << "../../sync_dir_" << argv[1];
-    ss >> stringPath;
-    
-    if (!diretorioExiste(stringPath)){
-        std::cerr << "Diretório não localizado" << std::endl;
-        return 1;
+    ss >> syncDirPath;
+
+    if (!existe_sync_dir(argv[1])) {
+        // cria sync_dir
     }
 
-    file_descriptor = inotify_init();
-
-    if (file_descriptor < 0) {
-        std::cerr << "Erro ao inicializar o inotify" << std::endl;
-        return 1;
-    }
-
-    wd = inotify_add_watch(file_descriptor, stringPath.c_str(), IN_MODIFY | IN_CLOSE_WRITE);
-
-    if (wd < 0) {
-        std::cerr << "Erro ao adicionar o watch para o diretório" << std::endl;
-        return 1;
-    }
+    adiciona_watcher(syncDirPath, &file_descriptor, &wd);
 
     // Esse while infinito trava a tela e imprime quando algum arquivo foi criado ou modificado no diretório informado
     while (true) {
-        int length = read(file_descriptor, buffer_inotify, BUF_INOTIFY_LEN);
-        if (length < 0) {
-            std::cerr << "Erro ao ler eventos do inotify" << std::endl;
-            return 1;
-        }
-
-        for (int i = 0; i < length;) {
-            struct inotify_event* event = (struct inotify_event*) &buffer_inotify[i];
-            if (event->len) {
-                if ((event->mask & IN_MODIFY) || (event->mask & IN_CLOSE_WRITE)) {
-                    std::cout << "Arquivo modificado: " << event->name << std::endl;
-                }
-            }
-            i += EVENT_SIZE + event->len;
-        }
+        verifica_modificacao(&file_descriptor, buffer_inotify);
     }
+
+    // COMUNICATION
 
     std::fstream fb;
     fb.open("../test.pdf", std::ios::binary | std::ios::in);
@@ -159,9 +168,7 @@ int main(int argc, char *argv[]) {
 
     delete[] (char*)buffer;
 
-    inotify_rm_watch(file_descriptor, wd);
-
-    close(file_descriptor);
+    fecha_watcher(&file_descriptor, &wd);
 
     close(sockfd);
 
