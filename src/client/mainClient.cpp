@@ -36,7 +36,6 @@ bool existe_sync_dir(const std::string& caminho) {
 }
 
 void adiciona_watcher(std::string syncDirPath, int *file_descriptor, int *wd) {
-    printf("\n\n%s\n\n", syncDirPath.c_str());
     *file_descriptor = inotify_init();
 
     if (*file_descriptor < 0)
@@ -45,7 +44,7 @@ void adiciona_watcher(std::string syncDirPath, int *file_descriptor, int *wd) {
     *wd = inotify_add_watch(*file_descriptor, syncDirPath.c_str(), IN_MODIFY | IN_CLOSE_WRITE);
 
     if (*wd < 0)
-        std::cerr << "Erro ao adicionar o watch para o diretório" << std::endl;
+        std::cerr << "Erro ao adicionar o watch para o diretório " << syncDirPath << std::endl;
 }
 
 void verifica_modificacao(int *file_descriptor, char buffer_inotify[BUF_INOTIFY_LEN]) {
