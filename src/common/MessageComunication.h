@@ -22,7 +22,7 @@ struct Header {
         this->session_id = session_id;
     }
 
-    int getHeaderSize() {
+    static constexpr int getHeaderSize() {
         return sizeof(header) + sizeof(msg_size) + sizeof(session_id);
     }
 
