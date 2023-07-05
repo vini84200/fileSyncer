@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <bits/stdc++.h> 
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
@@ -10,12 +11,16 @@
 #include <fstream>
 #include <iostream>
 
+#include <sys/inotify.h>
+
 #include <arpa/inet.h>
 
 #include "../common/MessageComunication.h"
 
 #define PORT  "3490"
 #define MAXDATASIZE 100
+#define EVENT_SIZE  (sizeof(struct inotify_event))
+#define BUF_INOTIFY_LEN (1024 * (EVENT_SIZE + 16))
 
 void *get_in_addr(struct sockaddr *sa)
 {
@@ -26,17 +31,54 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
+bool existe_sync_dir(const std::string& caminho) {
+    return std::filesystem::exists(caminho) && std::filesystem::is_directory(caminho);
+}
+
+void adiciona_watcher(std::string syncDirPath, int *file_descriptor, int *wd) {
+    *file_descriptor = inotify_init();
+
+    if (*file_descriptor < 0)
+        std::cerr << "Erro ao inicializar o inotify" << std::endl;
+
+    *wd = inotify_add_watch(*file_descriptor, syncDirPath.c_str(), IN_MODIFY | IN_CLOSE_WRITE);
+
+    if (*wd < 0)
+        std::cerr << "Erro ao adicionar o watch para o diretório " << syncDirPath << std::endl;
+}
+
+void verifica_modificacao(int *file_descriptor, char buffer_inotify[BUF_INOTIFY_LEN]) {
+    int length = read(*file_descriptor, buffer_inotify, BUF_INOTIFY_LEN);
+    if (length < 0)
+        std::cerr << "Erro ao ler eventos do inotify" << std::endl;
+
+    for (int i = 0; i < length;) {
+        struct inotify_event* event = (struct inotify_event*) &buffer_inotify[i];
+        if (event->len) {
+            if ((event->mask & IN_MODIFY) || (event->mask & IN_CLOSE_WRITE)) {
+                std::cout << "Arquivo modificado: " << event->name << std::endl;
+            }
+        }
+        i += EVENT_SIZE + event->len;
+    }
+}
+
+void fecha_watcher(int *file_descriptor, int *wd) {
+    inotify_rm_watch(*file_descriptor, *wd);
+
+    close(*file_descriptor);
+}
 
 // https://beej.us/guide/bgnet/html/split-wide/client-server-background.html
 int main(int argc, char *argv[]) {
 
-    int sockfd, numbytes;
-    char buf[MAXDATASIZE];
+    int sockfd, numbytes, wd, file_descriptor;
+    char buf[MAXDATASIZE], buffer_inotify[BUF_INOTIFY_LEN];
     struct addrinfo hints, *servinfo, *p;
     int rv;
     char s[INET6_ADDRSTRLEN];
 
-    if (argc != 2)
+    if (argc != 3)
     {
         fprintf(stderr, "usage: client hostname\n");
         exit(1);
@@ -46,7 +88,7 @@ int main(int argc, char *argv[]) {
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
-    if ((rv = getaddrinfo(argv[1], PORT, &hints, &servinfo) != 0)) {
+    if ((rv = getaddrinfo(argv[2], PORT, &hints, &servinfo) != 0)) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
     }
 
@@ -67,10 +109,9 @@ int main(int argc, char *argv[]) {
 
     }
 
-
     if (p == NULL) {
         fprintf(stderr, "client: failed to connect\n");
-        return 2;
+        return 1;
     }
 
 
@@ -79,6 +120,25 @@ int main(int argc, char *argv[]) {
     printf("client: connecting to %s\n", s);
 
     freeaddrinfo(servinfo); // all done with this structure
+    
+    // INOTIFY 
+
+    std::stringstream ss; 
+    std::string syncDirPath;
+
+    ss << "../../sync_dir_" << argv[1];
+    ss >> syncDirPath;
+
+    if (!existe_sync_dir(argv[1])) {
+        // cria sync_dir
+    }
+
+    adiciona_watcher(syncDirPath, &file_descriptor, &wd);
+
+    // Esse while infinito trava a tela e imprime quando algum arquivo foi criado ou modificado no diretório informado
+    while (true) {
+        verifica_modificacao(&file_descriptor, buffer_inotify);
+    }
 
     // COMUNICATION
 
@@ -106,6 +166,8 @@ int main(int argc, char *argv[]) {
     send(sockfd, buffer, sm.getSealedMessageSize(), 0);
 
     delete[] (char*)buffer;
+
+    fecha_watcher(&file_descriptor, &wd);
 
     close(sockfd);
 
