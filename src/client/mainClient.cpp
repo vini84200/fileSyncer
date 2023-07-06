@@ -69,6 +69,59 @@ void fecha_watcher(int *file_descriptor, int *wd) {
     close(*file_descriptor);
 }
 
+
+int terminal_Interaction(char * command, char * file_path)
+{
+
+    if (strcmp(command, "help\0") == 0)
+    {
+        printf("\nupload <path/filename.ext>\ndownload <filename.ext>\ndelete <filename.ext> \nlist_server\nlist_client \nget_sync_dir \nexit \n\n");
+        return 1;
+    }
+    if (strcmp(command, "get_sync_dir\0") == 0)
+    {
+        // chama função get_sync_dir
+        return 1;
+    }
+    if (strcmp(command, "list_client\0") == 0)
+    {
+        // chama função get_sync_dir list_client
+        return 1;
+    }
+
+    if (strcmp(command, "list_server\0") == 0)
+    {
+        // chama função list_server
+        return 1;
+    }
+
+    if (strcmp(command, "exit\0") == 0)
+    {
+        return 0;
+    }
+
+    if (strcmp(command, "download\0") == 0)
+    {
+        // chama função download1;
+        return 1;
+    }
+
+       if (strcmp(command, "upload\0") == 0)
+    {
+        // chama função upoad1;
+        return 1;
+    }
+
+    if (strcmp(command, "delete\0") == 0)
+    {
+        // chama função delete;
+        return 1;
+    }
+
+    printf("\nErro! Comando não encontrado.");
+    return 0;
+}
+
 // https://beej.us/guide/bgnet/html/split-wide/client-server-background.html
 int main(int argc, char *argv[]) {
 
@@ -81,6 +134,15 @@ int main(int argc, char *argv[]) {
     if (argc != 3)
     {
         fprintf(stderr, "usage: client hostname\n");
+        char buffer[200], command[50], file_path[150];
+        int notExit = 1;
+        while (notExit)
+        {
+            printf("Digite o comando desejado ou 'help' para ver a lista de comandos\n");
+            fgets(buffer, 64, stdin);
+            sscanf(buffer, "%s %s", command, file_path);
+            notExit = terminal_Interaction(command, file_path);
+        }
         exit(1);
     }
 
