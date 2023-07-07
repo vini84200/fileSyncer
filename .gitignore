@@ -2,3 +2,4 @@
 .idea/
 *.pdf
 /build/
+peda-session-*

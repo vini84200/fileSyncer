@@ -46,9 +46,9 @@ Connection::Connection(ConnectionArgs args) : args(args) {
 
     freeaddrinfo(servinfo);
 
-//    if (args.username.empty() || args.password.empty()) {
-//        return;
-//    }
+    if (args.username.empty() || args.password.empty()) {
+        return;
+    }
     rv = this->doLogin(args.username, args.password);
     if (rv == -1) {
         perror("Login failed");
@@ -67,8 +67,8 @@ Connection::ConnectionState Connection::getConnectionState() {
     return currConnState;
 }
 
-std::optional<std::pair<Header, std::vector<char>>> Connection::receiveMsg() {
-    std::array<char, Header::getHeaderSize()> header_buff;
+std::optional<std::pair<Header, std::string>> Connection::receiveMsg() {
+    std::array<char, Header::getHeaderSize()> header_buff{};
     bool ok = receiveBytes(header_buff.data(), Header::getHeaderSize());
     if (!ok) {
         return {};
@@ -79,8 +79,8 @@ std::optional<std::pair<Header, std::vector<char>>> Connection::receiveMsg() {
         return {};
     }
 
-    std::vector<char> msg_buff;
-    msg_buff.assign(0, h.msg_size);
+    std::string msg_buff;
+    msg_buff.assign(h.msg_size, 0);
 
     if (!receiveBytes(msg_buff.data(), h.msg_size)) {
         return {};

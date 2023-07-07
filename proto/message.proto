@@ -28,6 +28,10 @@ enum ResponseType {
 
 message Response {
   required ResponseType type = 1;
+  // ERROR
+  optional string error_message = 4;
+  // UPLOAD | DOWNLOAD | LIST
   optional string data = 2;
+  // LOGIN
   optional int32 session_id = 3;
 }

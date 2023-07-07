@@ -7,3 +7,7 @@
 Message::Message(Request request) {
     buffer = request.SerializeAsString();
 }
+
+Message::Message(Response response) {
+    buffer = response.SerializeAsString();
+}

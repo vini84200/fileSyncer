@@ -76,6 +76,8 @@ public:
     }
 
     Message(Request request);
+
+    Message(Response response);
 };
 
 class SealedMessage {

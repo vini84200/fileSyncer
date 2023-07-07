@@ -44,7 +44,7 @@ public:
     ConnectionState getConnectionState();
 
 public:
-    std::optional<std::pair<Header, std::vector<char>>> receiveMsg();
+    std::optional<std::pair<Header, std::string>> receiveMsg();
 
     bool receiveBytes(char *bytes, size_t bytes_to_receive);
 

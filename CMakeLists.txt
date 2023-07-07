@@ -24,7 +24,7 @@ include_directories(${Protobuf_INCLUDE_DIRS})
 
 project(fileSyncerServer)
 add_executable(fileSyncerServer src/server/main.cpp ${PROTO_SRCS} ${PROTO_HDRS} src/server/RequestHandler.cpp src/server/RequestHandler.h)
-target_link_libraries(fileSyncerServer fileSyncerCommon ${Protobuf_LIBRARIES})
+target_link_libraries(fileSyncerServer fileSyncerCommon proto protobuf::libprotobuf protobuf::libprotoc)
 
 
 project(fileSyncerClient)
