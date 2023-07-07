@@ -1,0 +1,14 @@
+//
+// Created by vini84200 on 7/7/23.
+//
+
+#ifndef FILESYNCERCLIENT_REQUESTHANDLER_H
+#define FILESYNCERCLIENT_REQUESTHANDLER_H
+
+
+class RequestHandler {
+
+};
+
+
+#endif //FILESYNCERCLIENT_REQUESTHANDLER_H

@@ -11,13 +11,10 @@ FetchContent_Declare(Protobuf
         FIND_PACKAGE_ARGS NAMES Protobuf
         )
 FetchContent_MakeAvailable(Protobuf)
-message(STATUS "debug protobuf lib location:${PROTOBUF_LIBRARIES} ")
-include(FindProtobuf)
-find_package(Protobuf CONFIG REQUIRED)
 
+add_subdirectory(proto)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${Protobuf_INCLUDE_DIRS})
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS message.proto)
-
 #add_custom_command(
 #        OUTPUT ${PROTO_SRCS} ${PROTO_HDRS}
 #        COMMAND ${PROTOC} --proto_path ${PROTO_DIR} message.proto --cpp_out ${GENERATED_CODE_DIR}
@@ -26,11 +23,10 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS message.proto)
 
 
 project(fileSyncerServer)
-add_executable(fileSyncerServer src/server/main.cpp ${PROTO_SRCS} ${PROTO_HDRS} )
+add_executable(fileSyncerServer src/server/main.cpp ${PROTO_SRCS} ${PROTO_HDRS} src/server/RequestHandler.cpp src/server/RequestHandler.h)
 target_link_libraries(fileSyncerServer fileSyncerCommon ${Protobuf_LIBRARIES})
 
 
 project(fileSyncerClient)
 add_executable(fileSyncerClient src/client/mainClient.cpp src/client/Connection.cpp ${PROTO_SRCS} ${PROTO_HDRS})
-target_link_libraries(fileSyncerClient fileSyncerCommon ${Protobuf_LIBRARIES})
-
+target_link_libraries(fileSyncerClient fileSyncerCommon proto protobuf::libprotobuf protobuf::libprotoc)

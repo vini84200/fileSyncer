@@ -3,3 +3,7 @@
 //
 
 #include "MessageComunication.h"
+
+Message::Message(Request request) {
+    buffer = request.SerializeAsString();
+}

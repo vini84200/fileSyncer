@@ -14,6 +14,7 @@
 #include <sys/inotify.h>
 #include "../common/MessageComunication.h"
 #include "Connection.h"
+#include "vcpkg_installed/x64-linux/include/google/protobuf/stubs/common.h"
 
 #define PORT  3490
 #define MAXDATASIZE 100
@@ -56,8 +57,7 @@ void verifica_modificacao(int *file_descriptor, char buffer_inotify[BUF_INOTIFY_
         if (event->len) {
             if ((event->mask & IN_MODIFY) || (event->mask & IN_CLOSE_WRITE)) {
                 std::cout << "Arquivo modificado: " << event->name << std::endl;
-            }
-            else {
+            } else {
                 std::cout << "Outro evento: " << event->name << std::endl;
             }
         }
@@ -121,6 +121,8 @@ int main(int argc, char *argv[]) {
     int wd, file_descriptor;
     char buffer_inotify[BUF_INOTIFY_LEN];
 
+    GOOGLE_PROTOBUF_VERIFY_VERSION;
+
     if (argc != 3) {
         fprintf(stderr, "usage: fileSyncerClient username hostname\n");
         exit(1);
@@ -128,8 +130,14 @@ int main(int argc, char *argv[]) {
 
     // COMUNICATION
 
-    ConnectionArgs cArgs = ConnectionArgs(argv[1], PORT, "", "");
+    ConnectionArgs cArgs = ConnectionArgs(argv[2], PORT, "", "");
     Connection conn = Connection(cArgs);
+
+    if (conn.getConnectionState() != Connection::ConnectionState::CONNECTED) {
+        perror("Error connecting to server");
+        exit(1);
+    }
+
     std::fstream fb;
     fb.open("test.pdf", std::ios::binary | std::ios::in);
     if (!fb.is_open()) {
@@ -144,9 +152,11 @@ int main(int argc, char *argv[]) {
 
     printf("Size %d\n", v.size());
 
-    Message m(v.data(), v.size());
+//    Message m(v.data(), v.size());
 
-    conn.sendMessage(m);
+//    if (!conn.sendMessage(m)) {
+//        perror("Error sending message");
+//    }
 
     printf("Message sent\n");
 

@@ -4,6 +4,7 @@
 #include <arpa/inet.h>
 #include <cstring>
 #include <vector>
+#include "proto/message.pb.h"
 
 struct Header {
     char header[18];
@@ -51,7 +52,7 @@ struct Header {
 
 
 class Message {
-    std::vector<char> buffer;
+    std::string buffer;
 
 public:
     Message() {
@@ -66,13 +67,15 @@ public:
         return buffer.size();
     }
 
-    std::vector<char> getVector() {
+    std::string getVector() {
         return buffer;
     }
 
     char *getBuffer() {
         return buffer.data();
     }
+
+    Message(Request request);
 };
 
 class SealedMessage {
