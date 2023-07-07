@@ -1,6 +1,7 @@
 #ifndef FILESYNCER_CONNECTION_H
 #define FILESYNCER_CONNECTION_H
 
+#include "proto/message.pb.h"
 #include <cstddef>
 
 #define CONNECTION_WAS_CLOSED 0
@@ -43,14 +44,18 @@ public:
 
     ConnectionState getConnectionState();
 
+    bool isLogged();
+
 public:
     std::optional<std::pair<Header, std::string>> receiveMsg();
+    std::optional<std::pair<Header, Response>> receiveResponse();
 
     bool receiveBytes(char *bytes, size_t bytes_to_receive);
 
     bool sendMessage(Message msg);
-
+    bool sendRequest(Request request);
     int doLogin(std::string username, std::string password);
+
 
 
 private:

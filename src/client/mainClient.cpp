@@ -14,6 +14,7 @@
 #include <sys/inotify.h>
 #include "../common/MessageComunication.h"
 #include "Connection.h"
+#include "proto/message.pb.h"
 #include "vcpkg_installed/x64-linux/include/google/protobuf/stubs/common.h"
 
 #define PORT  3490
@@ -57,6 +58,7 @@ void verifica_modificacao(int *file_descriptor, char buffer_inotify[BUF_INOTIFY_
         if (event->len) {
             if ((event->mask & IN_MODIFY) || (event->mask & IN_CLOSE_WRITE)) {
                 std::cout << "Arquivo modificado: " << event->name << std::endl;
+                // TODO: Enviar arquivo modificado para o servidor
             } else {
                 std::cout << "Outro evento: " << event->name << std::endl;
             }
@@ -70,7 +72,6 @@ void fecha_watcher(int *file_descriptor, int *wd) {
 
     close(*file_descriptor);
 }
-
 
 int terminal_Interaction(char *command, char *file_path) {
 
@@ -115,68 +116,21 @@ int terminal_Interaction(char *command, char *file_path) {
     return 0;
 }
 
-// https://beej.us/guide/bgnet/html/split-wide/client-server-background.html
-int main(int argc, char *argv[]) {
+char *username;
+char *password;
 
-    int wd, file_descriptor;
+Connection* mainConn;
+
+void *thread_monitoramento(void *arg) {
     char buffer_inotify[BUF_INOTIFY_LEN];
-
-    GOOGLE_PROTOBUF_VERIFY_VERSION;
-
-    if (argc != 3) {
-        fprintf(stderr, "usage: fileSyncerClient username hostname\n");
-        exit(1);
-    }
-
-    // COMUNICATION
-
-    ConnectionArgs cArgs = ConnectionArgs(argv[2], PORT, "", "");
-    Connection conn = Connection(cArgs);
-
-    if (conn.getConnectionState() != Connection::ConnectionState::CONNECTED) {
-        perror("Error connecting to server");
-        exit(1);
-    }
-
-    std::fstream fb;
-    fb.open("test.pdf", std::ios::binary | std::ios::in);
-    if (!fb.is_open()) {
-        printf("Error opening file");
-        exit(1);
-    }
-
-
-    std::vector<char> v;
-    for (char a; fb.get(a); fb.eof())
-        v.push_back(a);
-
-    printf("Size %d\n", v.size());
-
-//    Message m(v.data(), v.size());
-
-//    if (!conn.sendMessage(m)) {
-//        perror("Error sending message");
-//    }
-
-    printf("Message sent\n");
-
-    // Terminal Interaction
-    char buffer[200], command[50], file_path[150];
-    int notExit = 1;
-    while (notExit) {
-        printf("Digite o comando desejado ou 'help' para ver a lista de comandos\n");
-        fgets(buffer, 64, stdin);
-        sscanf(buffer, "%s %s", command, file_path);
-        notExit = terminal_Interaction(command, file_path);
-    }
-
+    int wd, file_descriptor;
     // INOTIFY
 
     std::stringstream ss;
     std::string syncDirPath;
 
     ss << getenv("HOME");
-    ss << "/sync_dir_" << argv[1];
+    ss << "/sync_dir_" << username;
     ss >> syncDirPath;
 
     if (!existe_sync_dir(syncDirPath)) {
@@ -193,6 +147,85 @@ int main(int argc, char *argv[]) {
 
 
     fecha_watcher(&file_descriptor, &wd);
+    return nullptr;
+}
+
+void *thread_updates(void *) {
+    Connection& conn = *mainConn;
+    Request r;
+    r.set_type(RequestType::SUBSCRIBE);
+    conn.sendRequest(r);
+    while (conn.getConnectionState() == Connection::ConnectionState::CONNECTED) {
+        auto response = conn.receiveResponse();
+        if (response.has_value()) {
+            auto [h, res] = response.value();
+            if (res.type() == ResponseType::UPDATED) {
+                std::cout << "Update: " << res.data() << std::endl;
+                // TODO: Treat the new updated file
+            }
+            else {
+                std::cout << "Error: Unexpected response type: " << res.type() << std::endl;
+            }
+        }
+    }
+
+    return nullptr;
+}
+
+void *thread_terminal(void *) {
+    char buffer[200], command[50], file_path[150];
+    int notExit = 1;
+    while (notExit) {
+        printf("Digite o comando desejado ou 'help' para ver a lista de comandos\n");
+        fgets(buffer, 64, stdin);
+        sscanf(buffer, "%s %s", command, file_path);
+        notExit = terminal_Interaction(command, file_path);
+    }
+    return nullptr;
+}
+
+
+// https://beej.us/guide/bgnet/html/split-wide/client-server-background.html
+int main(int argc, char *argv[]) {
+    GOOGLE_PROTOBUF_VERIFY_VERSION;
+    if (argc != 3) {
+        fprintf(stderr, "usage: fileSyncerClient username hostname\n");
+        exit(1);
+    }
+
+    username = argv[1];
+    // Ask for password
+    password = getpass("Password: ");
+
+
+    // COMUNICATION
+
+    ConnectionArgs cArgs = ConnectionArgs(argv[2], PORT, username, password);
+    mainConn = new Connection(cArgs);
+    Connection& conn = *mainConn;
+
+    if (conn.getConnectionState() != Connection::ConnectionState::CONNECTED) {
+        perror("Error connecting to server");
+        exit(1);
+    }
+
+    if (conn.isLogged()) {
+        printf("Logged in\n");
+    } else {
+        printf("Wrong username or password\n");
+        exit(1);
+    }
+
+    pthread_t thread_monitoramento_id, thread_updates_id, thread_terminal_id;
+    pthread_create(&thread_monitoramento_id, NULL, thread_monitoramento, NULL);
+    pthread_create(&thread_updates_id, NULL, thread_updates, NULL);
+    pthread_create(&thread_terminal_id, NULL, thread_terminal, NULL);
+
+
+
+    printf("Message sent\n");
+    
+    delete mainConn;
 
     return 0;
 }

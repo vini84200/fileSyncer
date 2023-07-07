@@ -24,13 +24,14 @@ enum ResponseType {
   OK = 0;
   ERROR = 1;
   DATA = 2;
+  UPDATED = 3;
 }
 
 message Response {
   required ResponseType type = 1;
   // ERROR
   optional string error_message = 4;
-  // UPLOAD | DOWNLOAD | LIST
+  // UPLOAD | DOWNLOAD | LIST | UPDATED
   optional string data = 2;
   // LOGIN
   optional int32 session_id = 3;

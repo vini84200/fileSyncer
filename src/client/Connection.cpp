@@ -109,6 +109,10 @@ bool Connection::receiveBytes(char *bytes, size_t bytes_to_receive) {
 }
 
 int Connection::doLogin(std::string username, std::string password) {
+    sesstionId = -1;
+    if (currConnState != ConnectionState::CONNECTED) {
+        return -1;
+    }
     Request req;
     req.New();
     req.set_type(RequestType::LOGIN);
@@ -210,4 +214,26 @@ Connection::Connection(Connection &other) : args(other.args) {
 
     sesstionId = other.sesstionId;
 
+}
+
+bool Connection::isLogged() {
+    return sesstionId != -1;
+}
+
+bool Connection::sendRequest(Request request) {
+    Message m(request);
+    return sendMessage(m);
+}
+
+std::optional<std::pair<Header, Response>> Connection::receiveResponse() {
+auto msg = receiveMsg();
+    if (!msg.has_value()) {
+        return {};
+    }
+    else {
+        auto [header, response] = msg.value();
+        Response resp;
+        resp.ParseFromString(response);
+        return {{header, resp}};
+    }
 }
