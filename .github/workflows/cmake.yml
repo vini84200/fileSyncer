@@ -36,12 +36,13 @@ jobs:
         configurePreset: 'default'
         buildPreset: 'release'
    
-    - name: Build
-      # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-      
-    - name: Upload a Build Artifact
+    - name: Upload a Client bin
       uses: actions/upload-artifact@v3.1.2
       with:
-        path: ${{github.workspace}}/build/{fileSyncerClient,fileSyncerServer}
+        path: ${{github.workspace}}/build/default/fileSyncerClient
+        retention-days: 7
+    - name: Upload a Client bin
+      uses: actions/upload-artifact@v3.1.2
+      with:
+        path: ${{github.workspace}}/build/default/fileSyncerServer
         retention-days: 7
