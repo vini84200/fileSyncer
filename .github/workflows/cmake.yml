@@ -18,17 +18,17 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-    - uses: lukka/get-cmake@latest
+    - uses: ./get-vcpkg@main
     
-    - name: Setup vcpkg (it does not install any package yet)
-      uses: lukka/run-vcpkg@v11
-
-    - name: Configure CMake
-      uses: lukka/run-cmake@v10
-      with: 
-        configurePreset: 'ninja-multi-vcpkg'
-
-
+    - uses: actions/checkout@v2
+      with:
+        repository: microsoft/vcpkg.git
+        path: vcpkg
+    
+    - name: Restore ports from cache.
+      uses: action/cache@v2
+    - run: cmake -S . -B ./build
+   
     - name: Build
       # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
