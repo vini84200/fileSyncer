@@ -21,6 +21,25 @@
 #define EVENT_SIZE  (sizeof(struct inotify_event))
 #define BUF_INOTIFY_LEN (1024 * (EVENT_SIZE + 16))
 
+#define CONTINUE 1
+std::string syncDirPath;
+char *username;
+char *password;
+
+Connection *mainConn;
+
+int notExit;
+bool muteUpdate = false;
+
+
+int getSyncDir();
+
+int listClient();
+
+int listServer();
+
+int ping();
+
 void *get_in_addr(struct sockaddr *sa) {
     if (sa->sa_family == AF_INET) {
         return &(((struct sockaddr_in *) sa)->sin_addr);
@@ -56,8 +75,39 @@ void verifica_modificacao(int *file_descriptor, char buffer_inotify[BUF_INOTIFY_
         struct inotify_event *event = (struct inotify_event *) &buffer_inotify[i];
         if (event->len) {
             if ((event->mask & IN_MODIFY) || (event->mask & IN_CLOSE_WRITE)) {
+                if (muteUpdate) {
+                    printf("Arquivo atualizado, processo de sincronização em andamento\n");
+                }
                 std::cout << "Arquivo modificado: " << event->name << std::endl;
-                // TODO: Enviar arquivo modificado para o servidor
+                Connection conn(*mainConn);
+                Request request;
+                request.set_type(RequestType::FILE_UPDATE);
+                const std::string filename = event->name;
+                request.mutable_file_update()->set_filename(filename);
+                request.mutable_file_update()->set_deleted(false);
+                std::fstream file;
+                file.open(syncDirPath + "/" + filename, std::ios::in | std::ios::binary);
+                if (!file.is_open()) {
+                    std::cerr << "Erro ao abrir o arquivo " << filename << std::endl;
+                    return;
+                }
+                request.mutable_file_update()->mutable_data()->assign(std::istreambuf_iterator<char>(file),
+                                                                       std::istreambuf_iterator<char>());
+                conn.sendRequest(request);
+                auto maybeResponse = conn.receiveResponse();
+                if (!maybeResponse.has_value()) {
+                    std::cerr << "Erro ao receber resposta do servidor" << std::endl;
+                    return;
+                }
+                auto [header, response] = maybeResponse.value();
+                if (response.type() == ERROR) {
+                    std::cerr << "Erro ao enviar arquivo para o servidor" << std::endl;
+                    return;
+                }
+                if (response.type() == FILE_UPDATED) {
+                    std::cout << "Arquivo atualizado no servidor" << std::endl;
+                }
+
             } else {
                 std::cout << "Outro evento: " << event->name << std::endl;
             }
@@ -79,17 +129,14 @@ int terminal_Interaction(char *command, char *file_path) {
         return 1;
     }
     if (strcmp(command, "get_sync_dir\0") == 0) {
-        // chama função get_sync_dir
-        return 1;
+        return getSyncDir();
     }
     if (strcmp(command, "list_client\0") == 0) {
-        // chama função get_sync_dir list_client
-        return 1;
+        return listClient();
     }
 
     if (strcmp(command, "list_server\0") == 0) {
-        // chama função list_server
-        return 1;
+        return listServer();
     }
 
     if (strcmp(command, "exit\0") == 0) {
@@ -111,28 +158,85 @@ int terminal_Interaction(char *command, char *file_path) {
         return 1;
     }
 
+    if (strcmp(command, "ping\0") == 0) {
+        return ping();
+    }
+
     printf("\nErro! Comando não encontrado.");
     return 0;
 }
 
-char *username;
-char *password;
+int ping() {
+    Connection conn(*mainConn);
+    Request request;
+    request.set_type(RequestType::PING);
+    conn.sendRequest(request);
+    auto maybeResponse = conn.receiveResponse();
+    if (!maybeResponse.has_value()) {
+        printf("\nErro ao receber resposta do servidor.");
+        return CONTINUE;
+    }
+    auto [header, response] = maybeResponse.value();
+    if (response.type() == ResponseType::ERROR) {
+        printf("\nErro ao listar arquivos no servidor: ", response.error_msg().c_str());
+        return CONTINUE;
+    }
+    if (response.type() == ResponseType::PONG) {
+        printf("\nServidor respondeu ao ping.");
+        return CONTINUE;
+    }
+}
 
-Connection *mainConn;
+int listServer() {
+    Connection conn (*mainConn);
+    Request request;
+    request.set_type(RequestType::LIST);
+    conn.sendRequest(request);
+    auto maybeResponse = conn.receiveResponse();
+    if (!maybeResponse.has_value()) {
+        printf("\nErro ao receber resposta do servidor.");
+        return CONTINUE;
+    }
+    auto [header, response] = maybeResponse.value();
+    if (response.type() == ResponseType::ERROR) {
+        printf("\nErro ao listar arquivos no servidor: ", response.error_msg().c_str());
+        return CONTINUE;
+    }
 
-int notExit;
+    if (response.type() == ResponseType::FILE_LIST) {
+        printf("\nArquivos no servidor: ");
+        for (const auto &file : response.file_list().files()) {
+            printf("\n%s", file.filename().c_str());
+        }
+        printf("\n");
+        return CONTINUE;
+    }
+
+
+}
+
+int listClient() {
+    printf("\nArquivos no diretório de sincronização: ");
+    for ( const auto & entry : std::filesystem::directory_iterator(syncDirPath) )
+        printf("\n%s", entry.path().filename().c_str());
+    printf("\n");
+    return CONTINUE;
+}
+
+int getSyncDir() {
+    if (!existe_sync_dir(syncDirPath)) {
+        std::filesystem::create_directory(syncDirPath);
+        printf("\nDiretório criado com sucesso!");
+    }
+    printf("\nDiretório: %s", syncDirPath.c_str());
+    return CONTINUE;
+}
+
 
 void *thread_monitoramento(void *arg) {
     char buffer_inotify[BUF_INOTIFY_LEN];
     int wd, file_descriptor;
     // INOTIFY
-
-    std::stringstream ss;
-    std::string syncDirPath;
-
-    ss << getenv("HOME");
-    ss << "/sync_dir_" << username;
-    ss >> syncDirPath;
 
     if (!existe_sync_dir(syncDirPath)) {
         // cria sync_dir
@@ -152,7 +256,7 @@ void *thread_monitoramento(void *arg) {
 }
 
 void *thread_updates(void *) {
-    Connection &conn = *mainConn;
+    Connection conn(*mainConn);
     Request r;
     r.set_type(RequestType::SUBSCRIBE);
     conn.sendRequest(r);
@@ -161,11 +265,23 @@ void *thread_updates(void *) {
         if (response.has_value()) {
             auto [h, res] = response.value();
             if (res.type() == ResponseType::UPDATED) {
-                std::cout << "Update: " << res.data() << std::endl;
-                // TODO: Treat the new updated file
+                std::cout << "Update: " << res.file_update().filename() << std::endl;
+                std::string path = syncDirPath + "/" + res.file_update().filename();
+                muteUpdate = true;
+                if (res.file_update().deleted()) {
+                    std::remove(path.c_str());
+                } else {
+                    std::ofstream file(path,
+                                       std::ios::binary | std::ios::out | std::ios::trunc);
+                    file << res.file_update().data();
+                }
+                muteUpdate = false;
             } else {
                 std::cout << "Error: Unexpected response type: " << res.type() << std::endl;
             }
+        }
+        else {
+            std::cout << "Error: Unexpected response" << std::endl;
         }
     }
 
@@ -215,6 +331,11 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+    std::stringstream ss;
+
+    ss << getenv("HOME");
+    ss << "/sync_dir_" << username;
+    ss >> syncDirPath;
     notExit = 1;
 
     pthread_t thread_monitoramento_id, thread_updates_id, thread_terminal_id;

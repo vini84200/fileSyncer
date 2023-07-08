@@ -14,6 +14,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 
 #include "../common/MessageComunication.h"
 #include "RequestHandler.h"
@@ -39,6 +40,7 @@ void handle_interrupt(int a) {
 int main() {
     struct addrinfo hints, *res;
 
+    std::filesystem::create_directory(std::string(getenv("HOME")) + "/.syncer");
 
     signal(SIGINT, &handle_interrupt);
 

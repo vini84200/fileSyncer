@@ -8,8 +8,11 @@
 
 struct Header {
     char header[18];
-    long int msg_size;
+    size_t msg_size;
     long int session_id;
+
+
+    //TODO: Convert from network to host
 
     Header() {
         strcpy(header, "VINIPROTOCOL v0.1");

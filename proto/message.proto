@@ -1,3 +1,4 @@
+syntax = "proto2";
 enum RequestType {
   PING = 0;
   SUBSCRIBE = 1;
@@ -6,6 +7,7 @@ enum RequestType {
   LIST = 4;
   LOGIN = 5;
   LOGOUT = 6;
+  FILE_UPDATE = 7;
 }
 
 message Request {
@@ -18,13 +20,19 @@ message Request {
   // Upload
   optional string data = 5;
 
+  // File Update
+  optional FileUpdate file_update = 6;
+
 }
 
 enum ResponseType {
-  OK = 0;
+  LOGIN_OK = 0;
   ERROR = 1;
   DATA = 2;
   UPDATED = 3;
+  FILE_LIST = 4;
+  PONG = 5;
+  FILE_UPDATED = 6;
 }
 
 message Response {
@@ -32,7 +40,31 @@ message Response {
   // ERROR
   optional string error_message = 4;
   // UPLOAD | DOWNLOAD | LIST | UPDATED
-  optional string data = 2;
+  optional string error_msg = 2;
   // LOGIN
   optional int32 session_id = 3;
+  // FILE SUBSCRIPTION UPDATED
+  optional FileUpdate file_update = 5;
+  // FILE LIST
+  optional FileList file_list = 6;
+}
+
+message FileDescriptor {
+  required string filename = 1;
+  required int32 size = 2;
+}
+
+message FileList {
+  repeated FileDescriptor files = 1;
+}
+
+message FileData {
+  required FileDescriptor file = 1;
+  required string data = 2;
+}
+
+message FileUpdate {
+  required string filename = 1;
+  required bool deleted = 2;
+  required bytes data = 3;
 }

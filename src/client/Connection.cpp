@@ -91,10 +91,10 @@ std::optional<std::pair<Header, std::string>> Connection::receiveMsg() {
 
 
 bool Connection::receiveBytes(char *bytes, size_t bytes_to_receive) {
-    int received = 0;
-    int now = 0;
+    size_t received = 0;
+    size_t now = 0;
     while (received < bytes_to_receive) {
-        now = recv(connectionFD, bytes, bytes_to_receive, 0);
+        now = recv(connectionFD, bytes + received, bytes_to_receive, 0);
         if (now == CONNECTION_WAS_CLOSED) {
             currConnState = ConnectionState::CONNECTION_CLOSED;
             return false;
@@ -135,7 +135,7 @@ int Connection::doLogin(std::string username, std::string password) {
         Response resp;
         resp.ParseFromArray(response.data(), response.size());
 
-        if (resp.type() == ResponseType::OK) {
+        if (resp.type() == ResponseType::LOGIN_OK) {
             // Extract token
             sesstionId = resp.session_id();
             return 0;
@@ -152,12 +152,12 @@ bool Connection::sendMessage(Message msg) {
         return false;
     }
     SealedMessage sm(msg, sesstionId);
-    void *buffer = sm.getSealedMessagePtr();
-    int hasToSend = sm.getSealedMessageSize();
-    int sent = 0;
+    char *buffer = (char*) sm.getSealedMessagePtr();
+    size_t hasToSend = sm.getSealedMessageSize();
+    size_t sent = 0;
 
     while (sent < hasToSend) {
-        int sent_now = send(connectionFD, buffer, sm.getSealedMessageSize(), 0);
+        int sent_now = send(connectionFD, buffer + sent, sm.getSealedMessageSize() - sent, 0);
 
         if (sent_now == CONNECTION_WAS_CLOSED) {
             currConnState = ConnectionState::CONNECTION_CLOSED;

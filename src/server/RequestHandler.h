@@ -42,6 +42,12 @@ private:
     pthread_t thread_;
 
     void handleLogin(Request request, Header header);
+
+    void handlePing(Request request, Header header);
+
+    void handleSubscribe(Request request, Header header);
+
+    void fileUpdate(Request request, Header header);
 };
 
 

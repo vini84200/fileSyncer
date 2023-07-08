@@ -4,13 +4,25 @@
 
 #include "RequestHandler.h"
 
+#include <bits/types/sigset_t.h>
+#include <condition_variable>
 #include <cstdio>
 #include <cstdlib>
+#include <string>
+#include <tuple>
 #include <unistd.h>
 #include <utility>
 #include <csignal>
+#include <vector>
+#include <fstream>
+#include <sys/stat.h>
+#include <filesystem>
 #include "../client/Connection.h"
 #include "proto/message.pb.h"
+
+std::string getUserFolder(std::string username) {
+    return std::string(getenv("HOME")) + "/.syncer/" + username;
+}
 
 std::optional<std::pair<Header, std::string>> RequestHandler::receiveMsg() {
     std::array<char, Header::getHeaderSize()> header_buff{};
@@ -37,10 +49,10 @@ std::optional<std::pair<Header, std::string>> RequestHandler::receiveMsg() {
 }
 
 bool RequestHandler::receiveBytes(char *bytes, size_t bytes_to_receive) {
-    int received = 0;
-    int now = 0;
+    size_t received = 0;
+    size_t now = 0;
     while (received < bytes_to_receive) {
-        now = recv(client_fd, bytes, bytes_to_receive, 0);
+        now = recv(client_fd, bytes + received, bytes_to_receive, 0);
         if (now == CONNECTION_WAS_CLOSED) {
             return false;
         }
@@ -52,14 +64,14 @@ bool RequestHandler::receiveBytes(char *bytes, size_t bytes_to_receive) {
     return true;
 }
 
-bool RequestHandler::sendMessage(Message msg) {
-    SealedMessage sm(std::move(msg), -1);
-    void *buffer = sm.getSealedMessagePtr();
-    int hasToSend = sm.getSealedMessageSize();
-    int sent = 0;
+bool RequestHandler::sendMessage(const Message msg) {
+    SealedMessage sm(msg, -1);
+    char *buffer = (char*) sm.getSealedMessagePtr();
+    size_t hasToSend = sm.getSealedMessageSize();
+    size_t sent = 0;
 
     while (sent < hasToSend) {
-        int sent_now = send(client_fd, buffer, sm.getSealedMessageSize(), 0);
+        int sent_now = send(client_fd, buffer + sent , hasToSend - sent, 0);
 
         if (sent_now == CONNECTION_WAS_CLOSED) {
             return false;
@@ -91,6 +103,11 @@ RequestHandler::RequestHandler(sockaddr_storage client_addr, int client_fd) :
 
 }
 
+std::map<std::string, std::string> senhas;
+std::map<int, std::string> logged_user_sessions;
+std::map<std::string, std::vector<std::tuple<int, RequestHandler>>> subscribed_users;
+
+
 void RequestHandler::handleRequest() {
     printf("Handling request\n");
     auto msg = receiveRequest();
@@ -104,11 +121,12 @@ void RequestHandler::handleRequest() {
 
     switch (r.type()) {
         case PING:
+            handlePing(r, h);
             printf("Ping request\n");
             break;
         case SUBSCRIBE:
-            printf("Subscribe request\n");
-            break;
+            handleSubscribe(r, h);
+            return;
         case DOWNLOAD:
             printf("Download request\n");
             break;
@@ -124,6 +142,9 @@ void RequestHandler::handleRequest() {
             break;
         case LOGOUT:
             printf("Logout request\n");
+            break;
+        case FILE_UPDATE:
+            fileUpdate(r, h);
             break;
         default:
             perror("Unknown request type");
@@ -163,17 +184,26 @@ void RequestHandler::handleLogin(Request request, Header header) {
     auto login = request.username();
     auto password = request.password();
 
-    // TODO: check login and password
-    if (login == "admin" && password == "admin") {
+    if (senhas.count(login) == 0) {
+        senhas[login] = password;
+        std::filesystem::create_directory(getUserFolder(login));
+        printf("New user created %s\n", login.c_str());
+    }
+    if (senhas[login] == password) {
         printf("Login successful\n");
+
+        int session_id;
+        srand(time(NULL));
+        while (logged_user_sessions.count(session_id = rand()) != 0);
+        logged_user_sessions[session_id] = login;
+
         Response response;
-        response.set_type(OK);
-        response.set_session_id(1);
+        response.set_type(LOGIN_OK);
+
+        response.set_session_id(session_id);
         sendResponse(response);
     } else {
         printf("Login failed\n");
-        printf("Login: %s\n", login.c_str());
-        printf("Password: %s\n", password.c_str());
         Response response;
         response.set_type(ERROR);
         response.set_error_message("Invalid login or password");
@@ -184,4 +214,71 @@ void RequestHandler::handleLogin(Request request, Header header) {
 bool RequestHandler::sendResponse(Response response) {
     Message msg(std::move(response));
     return sendMessage(msg);
+}
+
+void RequestHandler::handlePing(Request request, Header header) {
+    if (request.type() != PING) {
+        perror("Invalid request type");
+        exit(1);
+    }
+
+    Response response;
+    response.set_type(PONG);
+    sendResponse(response);
+}
+
+void RequestHandler::handleSubscribe(Request request, Header header) {
+    if (logged_user_sessions.count(header.session_id) == 0) {
+        Response response;
+        response.set_type(ERROR);
+        response.set_error_message("Invalid session id");
+        sendResponse(response);
+        return;
+    }
+
+    std::string user = logged_user_sessions[header.session_id];
+
+    subscribed_users[user].emplace_back(header.session_id, *this);
+
+}
+
+void RequestHandler::fileUpdate(Request request, Header header) {
+    if (logged_user_sessions.count(header.session_id) == 0) {
+        Response response;
+        response.set_type(ERROR);
+        response.set_error_message("Invalid session id");
+        sendResponse(response);
+        return;
+    }
+    std::string user = logged_user_sessions[header.session_id];
+    std::string filename = getUserFolder(user) + "/" + request.file_update().filename();
+
+    // Save the new file
+    if (request.file_update().deleted()) {
+        std::remove(filename.c_str());
+    } else {
+        std::ofstream file(filename.c_str(),
+                           std::ios::binary | std::ios::out | std::ios::trunc);
+        file << request.file_update().data();
+    }
+
+
+    // Send the file to all subscribed users
+    for (auto &[sid, rh]: subscribed_users[user]) {
+        if (sid == header.session_id) {
+            continue;
+        }
+        Response response;
+        response.set_type(UPDATED);
+        response.mutable_file_update()->set_filename(request.file_update().filename());
+        response.mutable_file_update()->set_deleted(request.file_update().deleted());
+        response.mutable_file_update()->set_data(request.file_update().data());
+        rh.sendResponse(response);
+    }
+
+    Response response;
+    response.set_type(FILE_UPDATED);
+    sendResponse(response);
+
+
 }
