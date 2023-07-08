@@ -15,13 +15,14 @@
 #include "../common/MessageComunication.h"
 #include "Connection.h"
 #include "proto/message.pb.h"
-
+#include "../common/utils.h"
+#include <openssl/sha.h>
 #define PORT  3490
-#define MAXDATASIZE 100
 #define EVENT_SIZE  (sizeof(struct inotify_event))
 #define BUF_INOTIFY_LEN (1024 * (EVENT_SIZE + 16))
 
 #define CONTINUE 1
+
 std::string syncDirPath;
 char *username;
 char *password;
@@ -42,6 +43,8 @@ int ping();
 
 int download(char *path);
 
+int upload(char *path);
+
 void *get_in_addr(struct sockaddr *sa) {
     if (sa->sa_family == AF_INET) {
         return &(((struct sockaddr_in *) sa)->sin_addr);
@@ -60,7 +63,7 @@ void adiciona_watcher(std::string syncDirPath, int *file_descriptor, int *wd) {
     if (*file_descriptor < 0)
         std::cerr << "Erro ao inicializar o inotify" << std::endl;
 
-    *wd = inotify_add_watch(*file_descriptor, syncDirPath.c_str(), IN_MODIFY | IN_CLOSE_WRITE);
+    *wd = inotify_add_watch(*file_descriptor, syncDirPath.c_str(), IN_MODIFY | IN_CLOSE_WRITE | IN_DELETE);
 
     if (*wd < 0)
         errno == ENOENT ? std::cerr << "Diretório " << syncDirPath << " não encontrado" << std::endl
@@ -76,9 +79,10 @@ void verifica_modificacao(int *file_descriptor, char buffer_inotify[BUF_INOTIFY_
     for (int i = 0; i < length;) {
         struct inotify_event *event = (struct inotify_event *) &buffer_inotify[i];
         if (event->len) {
-            if ((event->mask & IN_MODIFY) || (event->mask & IN_CLOSE_WRITE)) {
+            if ((event->mask & IN_MODIFY) || (event->mask & IN_CLOSE_WRITE) ){
                 if (muteUpdate) {
                     printf("Arquivo atualizado, processo de sincronização em andamento\n");
+                    continue;
                 }
                 std::cout << "Arquivo modificado: " << event->name << std::endl;
                 Connection conn(*mainConn);
@@ -95,6 +99,10 @@ void verifica_modificacao(int *file_descriptor, char buffer_inotify[BUF_INOTIFY_
                 }
                 request.mutable_file_update()->mutable_data()->assign(std::istreambuf_iterator<char>(file),
                                                                        std::istreambuf_iterator<char>());
+                // Calcula o hash do arquivo
+                std::string hash_str = sha256_file(syncDirPath + "/" + filename);
+                request.mutable_file_update()->set_hash(hash_str);
+
                 conn.sendRequest(request);
                 auto maybeResponse = conn.receiveResponse();
                 if (!maybeResponse.has_value()) {
@@ -109,6 +117,8 @@ void verifica_modificacao(int *file_descriptor, char buffer_inotify[BUF_INOTIFY_
                 if (response.type() == FILE_UPDATED) {
                     std::cout << "Arquivo atualizado no servidor" << std::endl;
                 }
+
+            } else if (event->mask & IN_DELETE) {
 
             } else {
                 std::cout << "Outro evento: " << event->name << std::endl;
@@ -150,8 +160,7 @@ int terminal_Interaction(char *command, char *file_path) {
     }
 
     if (strcmp(command, "upload\0") == 0) {
-        // chama função upoad1;
-        return 1;
+        return upload(file_path);
     }
 
     if (strcmp(command, "delete\0") == 0) {
@@ -164,6 +173,38 @@ int terminal_Interaction(char *command, char *file_path) {
     }
 
     printf("\nErro! Comando não encontrado.");
+    return CONTINUE;
+}
+
+int upload(char *path) {
+    Request request;
+    request.set_type(RequestType::FILE_UPDATE);
+    const std::string filename = path;
+    request.mutable_file_update()->set_filename(filename);
+    request.mutable_file_update()->set_deleted(false);
+    std::fstream file;
+    file.open(filename, std::ios::in | std::ios::binary);
+    if (!file.is_open()) {
+        std::cerr << "Erro ao abrir o arquivo " << filename << std::endl;
+        return CONTINUE;
+    }
+    request.mutable_file_update()->mutable_data()->assign(std::istreambuf_iterator<char>(file),
+                                                          std::istreambuf_iterator<char>());
+    Connection conn(*mainConn);
+    conn.sendRequest(request);
+    auto maybeResponse = conn.receiveResponse();
+    if (!maybeResponse.has_value()) {
+        std::cerr << "Erro ao receber resposta do servidor" << std::endl;
+        return CONTINUE;
+    }
+    auto [header, response] = maybeResponse.value();
+    if (response.type() == ERROR) {
+        std::cerr << "Erro ao enviar arquivo para o servidor" << std::endl;
+        return CONTINUE;
+    }
+    if (response.type() == FILE_UPDATED) {
+        std::cout << "Arquivo enviado ao servidor com sucesso" << std::endl;
+    }
     return CONTINUE;
 }
 
@@ -306,6 +347,13 @@ void *thread_updates(void *) {
                 if (res.file_update().deleted()) {
                     std::remove(path.c_str());
                 } else {
+                    // Check the hash
+                    std::string hash = sha256_file(path);
+                    if (hash == res.file_update().hash()) {
+                        std::cout << "File already up to date" << std::endl;
+                        muteUpdate = false;
+                        continue;
+                    }
                     std::ofstream file(path,
                                        std::ios::binary | std::ios::out | std::ios::trunc);
                     file << res.file_update().data();

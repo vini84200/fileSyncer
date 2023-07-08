@@ -17,8 +17,10 @@
 #include <fstream>
 #include <sys/stat.h>
 #include <filesystem>
+#include <openssl/sha.h>
 #include "../client/Connection.h"
 #include "proto/message.pb.h"
+#include "../common/utils.h"
 
 std::string getUserFolder(std::string username) {
     return std::string(getenv("HOME")) + "/.syncer/" + username;
@@ -259,6 +261,14 @@ void RequestHandler::fileUpdate(Request request, Header header) {
     if (request.file_update().deleted()) {
         std::remove(filename.c_str());
     } else {
+        std::string hash_str = sha256_file(filename);
+        if (hash_str == request.file_update().hash()) {
+            // File already up to date
+            Response response;
+            response.set_type(FILE_UPDATED);
+            sendResponse(response);
+            return;
+        }
         std::ofstream file(filename.c_str(),
                            std::ios::binary | std::ios::out | std::ios::trunc);
         file << request.file_update().data();
@@ -267,14 +277,12 @@ void RequestHandler::fileUpdate(Request request, Header header) {
 
     // Send the file to all subscribed users
     for (auto &[sid, rh]: subscribed_users[user]) {
-        if (sid == header.session_id) {
-            continue;
-        }
         Response response;
         response.set_type(UPDATED);
         response.mutable_file_update()->set_filename(request.file_update().filename());
         response.mutable_file_update()->set_deleted(request.file_update().deleted());
         response.mutable_file_update()->set_data(request.file_update().data());
+        response.mutable_file_update()->set_hash(request.file_update().hash());
         rh.sendResponse(response);
     }
 

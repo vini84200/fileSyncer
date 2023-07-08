@@ -3,7 +3,8 @@ set(CMAKE_CXX_STANDARD 17)
 include(FetchContent)
 
 project(fileSyncerCommon)
-add_library(fileSyncerCommon src/common/MessageComunication.cpp)
+add_library(fileSyncerCommon src/common/MessageComunication.cpp src/common/utils.cpp)
+target_link_libraries(fileSyncerCommon ssl crypto)
 
 FetchContent_Declare(Protobuf
         GIT_REPOSITORY https://github.com/protocolbuffers/protobuf.git
@@ -24,9 +25,9 @@ include_directories(${Protobuf_INCLUDE_DIRS})
 
 project(fileSyncerServer)
 add_executable(fileSyncerServer src/server/main.cpp ${PROTO_SRCS} ${PROTO_HDRS} src/server/RequestHandler.cpp src/server/RequestHandler.h)
-target_link_libraries(fileSyncerServer fileSyncerCommon proto protobuf::libprotobuf protobuf::libprotoc)
+target_link_libraries(fileSyncerServer fileSyncerCommon proto protobuf::libprotobuf protobuf::libprotoc )
 
 
 project(fileSyncerClient)
 add_executable(fileSyncerClient src/client/mainClient.cpp src/client/Connection.cpp ${PROTO_SRCS} ${PROTO_HDRS})
-target_link_libraries(fileSyncerClient fileSyncerCommon proto protobuf::libprotobuf protobuf::libprotoc)
+target_link_libraries(fileSyncerClient fileSyncerCommon proto protobuf::libprotobuf protobuf::libprotoc )
