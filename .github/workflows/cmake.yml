@@ -31,8 +31,8 @@ jobs:
     - name: Run CMake consuming CMakePreset.json and run vcpkg to build dependencies
       uses: lukka/run-cmake@v10
       with:
-        configurePreset: 'ninja-multi-vcpkg'
-        buildPreset: 'ninja-multi-vcpkg'
+        configurePreset: 'default'
+        buildPreset: 'release'
    
     - name: Build
       # Build your program with the given configuration
