@@ -51,7 +51,6 @@ message Response {
 
 message FileDescriptor {
   required string filename = 1;
-  required int32 size = 2;
 }
 
 message FileList {

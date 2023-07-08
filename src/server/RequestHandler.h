@@ -48,6 +48,10 @@ private:
     void handleSubscribe(Request request, Header header);
 
     void fileUpdate(Request request, Header header);
+
+    void list(Request request, Header header);
+
+    void handleDownload(Request request, Header header);
 };
 
 

@@ -40,6 +40,8 @@ int listServer();
 
 int ping();
 
+int download(char *path);
+
 void *get_in_addr(struct sockaddr *sa) {
     if (sa->sa_family == AF_INET) {
         return &(((struct sockaddr_in *) sa)->sin_addr);
@@ -126,7 +128,7 @@ int terminal_Interaction(char *command, char *file_path) {
 
     if (strcmp(command, "help\0") == 0) {
         printf("\nupload <path/filename.ext>\ndownload <filename.ext>\ndelete <filename.ext> \nlist_server\nlist_client \nget_sync_dir \nexit \n\n");
-        return 1;
+        return CONTINUE;
     }
     if (strcmp(command, "get_sync_dir\0") == 0) {
         return getSyncDir();
@@ -140,12 +142,11 @@ int terminal_Interaction(char *command, char *file_path) {
     }
 
     if (strcmp(command, "exit\0") == 0) {
-        return 0;
+        return EXIT_SUCCESS;
     }
 
     if (strcmp(command, "download\0") == 0) {
-        // chama função download1;
-        return 1;
+        return download(file_path);
     }
 
     if (strcmp(command, "upload\0") == 0) {
@@ -163,7 +164,40 @@ int terminal_Interaction(char *command, char *file_path) {
     }
 
     printf("\nErro! Comando não encontrado.");
-    return 0;
+    return CONTINUE;
+}
+
+int download(char *path) {
+    Request request;
+    request.set_type(RequestType::DOWNLOAD);
+    request.set_filename(path);
+    Connection conn(*mainConn);
+    conn.sendRequest(request);
+    auto maybeResponse = conn.receiveResponse();
+    if (!maybeResponse.has_value()) {
+        printf("\nErro ao receber resposta do servidor.");
+        return CONTINUE;
+    }
+    auto [header, response] = maybeResponse.value();
+    if (response.type() == ResponseType::ERROR) {
+        printf("\nErro ao baixar arquivo do servidor: ", response.error_msg().c_str());
+        return CONTINUE;
+    }
+
+    if (response.type() == ResponseType::DATA ) {
+        std::fstream file;
+        file.open(path, std::ios::out | std::ios::binary | std::ios::trunc);
+        if (!file.is_open()) {
+            printf("\nErro ao abrir o arquivo %s", path);
+            return CONTINUE;
+        }
+        file << response.file_update().data();
+        file.close();
+        printf("\nArquivo %s baixado com sucesso.", path);
+        return CONTINUE;
+    }
+
+    return CONTINUE;
 }
 
 int ping() {
@@ -182,7 +216,7 @@ int ping() {
         return CONTINUE;
     }
     if (response.type() == ResponseType::PONG) {
-        printf("\nServidor respondeu ao ping.");
+        printf("\nServidor respondeu ao ping.\n");
         return CONTINUE;
     }
 }
@@ -206,6 +240,7 @@ int listServer() {
     if (response.type() == ResponseType::FILE_LIST) {
         printf("\nArquivos no servidor: ");
         for (const auto &file : response.file_list().files()) {
+            // TODO: mostrar data de modificação e outras informações
             printf("\n%s", file.filename().c_str());
         }
         printf("\n");
@@ -291,7 +326,7 @@ void *thread_updates(void *) {
 void *thread_terminal(void *) {
     char buffer[200], command[50], file_path[150];
     while (notExit) {
-        printf("Digite o comando desejado ou 'help' para ver a lista de comandos\n");
+        printf("Digite o comando desejado ou 'help' para ver a lista de comandos\n > ");
         fgets(buffer, 64, stdin);
         sscanf(buffer, "%s %s", command, file_path);
         notExit = terminal_Interaction(command, file_path);

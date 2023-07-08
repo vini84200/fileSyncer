@@ -129,12 +129,14 @@ void RequestHandler::handleRequest() {
             return;
         case DOWNLOAD:
             printf("Download request\n");
+            handleDownload(r, h);
             break;
         case UPLOAD:
             printf("Upload request\n");
             break;
         case LIST:
             printf("List request\n");
+            list(r, h);
             break;
         case LOGIN:
             printf("Login request\n");
@@ -280,5 +282,64 @@ void RequestHandler::fileUpdate(Request request, Header header) {
     response.set_type(FILE_UPDATED);
     sendResponse(response);
 
+
+}
+
+void RequestHandler::list(Request request, Header header) {
+    if (logged_user_sessions.count(header.session_id) == 0) {
+        Response response;
+        response.set_type(ERROR);
+        response.set_error_message("Invalid session id");
+        sendResponse(response);
+        return;
+    }
+    std::string user = logged_user_sessions[header.session_id];
+
+    Response response;
+    response.set_type(FILE_LIST);
+    for (auto &p: std::filesystem::directory_iterator(getUserFolder(user))) {
+        auto& f = *response.mutable_file_list()->add_files();
+        f.set_filename(p.path().filename());
+    }
+    sendResponse(response);
+}
+
+void RequestHandler::handleDownload(Request request, Header header) {
+    if (logged_user_sessions.count(header.session_id) == 0) {
+        Response response;
+        response.set_type(ERROR);
+        response.set_error_message("Invalid session id");
+        sendResponse(response);
+        return;
+    }
+
+    std::string user = logged_user_sessions[header.session_id];
+
+    std::string filename = getUserFolder(user) + "/" + request.filename();
+    // check if file exists and is within the user folder
+    if (!std::filesystem::exists(filename) || !std::filesystem::equivalent(std::filesystem::path(filename).parent_path(), getUserFolder(user))) {
+        Response response;
+        response.set_type(ERROR);
+        response.set_error_message("Invalid file");
+        sendResponse(response);
+        return;
+    }
+
+    std::fstream file(filename.c_str(), std::ios::binary | std::ios::in);
+    if (!file.is_open()) {
+        Response response;
+        response.set_type(ERROR);
+        response.set_error_message("Could not open file");
+        sendResponse(response);
+        return;
+    }
+
+    Response response;
+    response.set_type(DATA);
+    response.mutable_file_update()->set_filename(request.filename());
+    response.mutable_file_update()->set_deleted(false);
+    response.mutable_file_update()->mutable_data()->assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+
+    sendResponse(response);
 
 }
