@@ -15,7 +15,6 @@
 #include "../common/MessageComunication.h"
 #include "Connection.h"
 #include "proto/message.pb.h"
-#include "vcpkg_installed/x64-linux/include/google/protobuf/stubs/common.h"
 
 #define PORT  3490
 #define MAXDATASIZE 100
