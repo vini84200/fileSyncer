@@ -22,7 +22,7 @@ jobs:
     
     - uses: actions/checkout@v2
       with:
-        repository: microsoft/vcpkg.git
+        repository: microsoft/vcpkg@2023.06.20
         path: vcpkg
         
     - run: cmake -S . -B ./build
