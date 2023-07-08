@@ -24,9 +24,7 @@ jobs:
       with:
         repository: microsoft/vcpkg.git
         path: vcpkg
-    
-    - name: Restore ports from cache.
-      uses: action/cache@v2
+        
     - run: cmake -S . -B ./build
    
     - name: Build
