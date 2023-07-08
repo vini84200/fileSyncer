@@ -120,7 +120,7 @@ int Connection::doLogin(std::string username, std::string password) {
     req.set_password(password);
 
     Message m(req);
-    Connection loginConn (*this);
+    Connection loginConn(*this);
     if (loginConn.getConnectionState() != ConnectionState::CONNECTED) {
         perror("Login failed");
         return -1;
@@ -130,8 +130,7 @@ int Connection::doLogin(std::string username, std::string password) {
     auto msg = loginConn.receiveMsg();
     if (!msg.has_value()) {
         return -1;
-    }
-    else {
+    } else {
         auto [header, response] = msg.value();
         Response resp;
         resp.ParseFromArray(response.data(), response.size());
@@ -140,8 +139,7 @@ int Connection::doLogin(std::string username, std::string password) {
             // Extract token
             sesstionId = resp.session_id();
             return 0;
-        }
-        else {
+        } else {
             return -1;
         }
     }
@@ -226,11 +224,10 @@ bool Connection::sendRequest(Request request) {
 }
 
 std::optional<std::pair<Header, Response>> Connection::receiveResponse() {
-auto msg = receiveMsg();
+    auto msg = receiveMsg();
     if (!msg.has_value()) {
         return {};
-    }
-    else {
+    } else {
         auto [header, response] = msg.value();
         Response resp;
         resp.ParseFromString(response);

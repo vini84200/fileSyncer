@@ -19,14 +19,18 @@ public:
     RequestHandler(sockaddr_storage client_addr, int client_fd);
 
     pthread_t start();
+
     // Will run in a separate thread
     void handleRequest();
 
     std::optional<std::pair<Header, std::string>> receiveMsg();
+
     bool sendMessage(Message msg);
+
     bool endConnection();
 
     std::optional<std::pair<Header, Request>> receiveRequest();
+
     bool sendResponse(Response response);
 
 private:

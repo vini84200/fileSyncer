@@ -17,6 +17,7 @@
 
 #include "../common/MessageComunication.h"
 #include "RequestHandler.h"
+
 #define MYPORT "3490"
 #define BACKLOG 5
 
@@ -64,7 +65,7 @@ int main() {
 
     {
         char ipstr[INET_ADDRSTRLEN];
-        inet_ntop(res->ai_family, &((struct sockaddr_in *)res->ai_addr)->sin_addr, ipstr, sizeof ipstr);
+        inet_ntop(res->ai_family, &((struct sockaddr_in *) res->ai_addr)->sin_addr, ipstr, sizeof ipstr);
 
         printf("Listening on %s:%s\n", ipstr, MYPORT);
     }
@@ -75,7 +76,7 @@ int main() {
     socklen_t addr_size;
 
     std::vector<RequestHandler> allHandlers;
-    std::vector<pthread_t > allThreads;
+    std::vector<pthread_t> allThreads;
 
 
     while (run) {
@@ -98,7 +99,7 @@ int main() {
 
     printf("Awaiting the clients to end the communication.\n");
 
-    for (auto & t : allThreads) {
+    for (auto &t: allThreads) {
         pthread_join(t, NULL);
     }
 

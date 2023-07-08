@@ -119,7 +119,9 @@ int terminal_Interaction(char *command, char *file_path) {
 char *username;
 char *password;
 
-Connection* mainConn;
+Connection *mainConn;
+
+int notExit;
 
 void *thread_monitoramento(void *arg) {
     char buffer_inotify[BUF_INOTIFY_LEN];
@@ -141,7 +143,7 @@ void *thread_monitoramento(void *arg) {
     adiciona_watcher(syncDirPath, &file_descriptor, &wd);
 
     // Esse while infinito trava a tela e imprime quando algum arquivo foi criado ou modificado no diretório informado
-    while (true) {
+    while (notExit) {
         verifica_modificacao(&file_descriptor, buffer_inotify);
     }
 
@@ -151,19 +153,18 @@ void *thread_monitoramento(void *arg) {
 }
 
 void *thread_updates(void *) {
-    Connection& conn = *mainConn;
+    Connection &conn = *mainConn;
     Request r;
     r.set_type(RequestType::SUBSCRIBE);
     conn.sendRequest(r);
-    while (conn.getConnectionState() == Connection::ConnectionState::CONNECTED) {
+    while (conn.getConnectionState() == Connection::ConnectionState::CONNECTED && notExit) {
         auto response = conn.receiveResponse();
         if (response.has_value()) {
             auto [h, res] = response.value();
             if (res.type() == ResponseType::UPDATED) {
                 std::cout << "Update: " << res.data() << std::endl;
                 // TODO: Treat the new updated file
-            }
-            else {
+            } else {
                 std::cout << "Error: Unexpected response type: " << res.type() << std::endl;
             }
         }
@@ -174,7 +175,6 @@ void *thread_updates(void *) {
 
 void *thread_terminal(void *) {
     char buffer[200], command[50], file_path[150];
-    int notExit = 1;
     while (notExit) {
         printf("Digite o comando desejado ou 'help' para ver a lista de comandos\n");
         fgets(buffer, 64, stdin);
@@ -202,7 +202,7 @@ int main(int argc, char *argv[]) {
 
     ConnectionArgs cArgs = ConnectionArgs(argv[2], PORT, username, password);
     mainConn = new Connection(cArgs);
-    Connection& conn = *mainConn;
+    Connection &conn = *mainConn;
 
     if (conn.getConnectionState() != Connection::ConnectionState::CONNECTED) {
         perror("Error connecting to server");
@@ -216,15 +216,15 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+    notExit = 1;
+
     pthread_t thread_monitoramento_id, thread_updates_id, thread_terminal_id;
     pthread_create(&thread_monitoramento_id, NULL, thread_monitoramento, NULL);
     pthread_create(&thread_updates_id, NULL, thread_updates, NULL);
     pthread_create(&thread_terminal_id, NULL, thread_terminal, NULL);
 
+    pthread_join(thread_terminal_id, NULL);
 
-
-    printf("Message sent\n");
-    
     delete mainConn;
 
     return 0;

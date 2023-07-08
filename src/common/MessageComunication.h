@@ -87,10 +87,12 @@ public:
 
     SealedMessage() {
     }
+
     SealedMessage(Message m) {
         message = m;
         header = Header(m.getSize(), 0);
     }
+
     SealedMessage(Message m, long int session_id) {
         message = m;
         header = Header(m.getSize(), session_id);

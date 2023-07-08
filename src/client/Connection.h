@@ -32,6 +32,7 @@ class Connection {
 
 public:
     Connection(ConnectionArgs args);
+
     Connection(Connection &other); // copy constructor
     ~Connection();
 
@@ -48,14 +49,16 @@ public:
 
 public:
     std::optional<std::pair<Header, std::string>> receiveMsg();
+
     std::optional<std::pair<Header, Response>> receiveResponse();
 
     bool receiveBytes(char *bytes, size_t bytes_to_receive);
 
     bool sendMessage(Message msg);
-    bool sendRequest(Request request);
-    int doLogin(std::string username, std::string password);
 
+    bool sendRequest(Request request);
+
+    int doLogin(std::string username, std::string password);
 
 
 private:
