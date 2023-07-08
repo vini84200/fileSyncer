@@ -1,0 +1,38 @@
+enum RequestType {
+  PING = 0;
+  SUBSCRIBE = 1;
+  DOWNLOAD = 2;
+  UPLOAD = 3;
+  LIST = 4;
+  LOGIN = 5;
+  LOGOUT = 6;
+}
+
+message Request {
+  required RequestType type = 1;
+  // Login
+  optional string username = 2;
+  optional string password = 3;
+  // Download / Upload
+  optional string filename = 4;
+  // Upload
+  optional string data = 5;
+
+}
+
+enum ResponseType {
+  OK = 0;
+  ERROR = 1;
+  DATA = 2;
+  UPDATED = 3;
+}
+
+message Response {
+  required ResponseType type = 1;
+  // ERROR
+  optional string error_message = 4;
+  // UPLOAD | DOWNLOAD | LIST | UPDATED
+  optional string data = 2;
+  // LOGIN
+  optional int32 session_id = 3;
+}

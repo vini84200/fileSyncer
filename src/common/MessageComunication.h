@@ -4,6 +4,7 @@
 #include <arpa/inet.h>
 #include <cstring>
 #include <vector>
+#include "proto/message.pb.h"
 
 struct Header {
     char header[18];
@@ -22,7 +23,7 @@ struct Header {
         this->session_id = session_id;
     }
 
-    int getHeaderSize() {
+    static constexpr int getHeaderSize() {
         return sizeof(header) + sizeof(msg_size) + sizeof(session_id);
     }
 
@@ -51,7 +52,7 @@ struct Header {
 
 
 class Message {
-    std::vector<char> buffer;
+    std::string buffer;
 
 public:
     Message() {
@@ -66,13 +67,17 @@ public:
         return buffer.size();
     }
 
-    std::vector<char> getVector() {
+    std::string getVector() {
         return buffer;
     }
 
     char *getBuffer() {
         return buffer.data();
     }
+
+    Message(Request request);
+
+    Message(Response response);
 };
 
 class SealedMessage {
@@ -82,10 +87,12 @@ public:
 
     SealedMessage() {
     }
+
     SealedMessage(Message m) {
         message = m;
         header = Header(m.getSize(), 0);
     }
+
     SealedMessage(Message m, long int session_id) {
         message = m;
         header = Header(m.getSize(), session_id);
