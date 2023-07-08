@@ -1,0 +1,34 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 20,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "Default",
+      "displayName": "Default",
+      "description": "Default preset",
+      "binaryDir": "${sourceDir}/build",
+      "generator": "Ninja"
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "Default",
+      "displayName": "Default",
+      "description": "Default preset",
+      "configurePreset": "Default",
+      "buildCommandArgs": "-v"
+    },
+    {
+      "name": "Release",
+      "displayName": "Release",
+      "description": "Release preset",
+      "configurePreset": "Default",
+      "buildCommandArgs": "-v",
+      "configuration": "Release"
+    }
+  ]
+}
