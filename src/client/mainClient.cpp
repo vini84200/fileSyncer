@@ -45,6 +45,8 @@ int download(char *path);
 
 int upload(char *path);
 
+int deleteFile(char *path);
+
 void *get_in_addr(struct sockaddr *sa) {
     if (sa->sa_family == AF_INET) {
         return &(((struct sockaddr_in *) sa)->sin_addr);
@@ -119,7 +121,7 @@ void verifica_modificacao(int *file_descriptor, char buffer_inotify[BUF_INOTIFY_
                 }
 
             } else if (event->mask & IN_DELETE) {
-
+                deleteFile((char *) event->name);
             } else {
                 std::cout << "Outro evento: " << event->name << std::endl;
             }
@@ -164,8 +166,7 @@ int terminal_Interaction(char *command, char *file_path) {
     }
 
     if (strcmp(command, "delete\0") == 0) {
-        // chama função delete;
-        return 1;
+        return deleteFile(file_path);
     }
 
     if (strcmp(command, "ping\0") == 0) {
@@ -173,6 +174,33 @@ int terminal_Interaction(char *command, char *file_path) {
     }
 
     printf("\nErro! Comando não encontrado.");
+    return CONTINUE;
+}
+
+int deleteFile(char *path) {
+    Request request;
+    request.set_type(RequestType::FILE_UPDATE);
+    const std::string filename = path;
+    request.mutable_file_update()->set_filename(filename);
+    request.mutable_file_update()->set_deleted(true);
+    request.mutable_file_update()->set_hash("");
+    request.mutable_file_update()->mutable_data()->clear();
+    Connection conn(*mainConn);
+    conn.sendRequest(request);
+    auto maybeResponse = conn.receiveResponse();
+    if (!maybeResponse.has_value()) {
+        std::cerr << "Erro ao receber resposta do servidor" << std::endl;
+        return CONTINUE;
+    }
+    auto [header, response] = maybeResponse.value();
+    if (response.type() == ERROR) {
+        std::cerr << "Erro ao enviar arquivo para o servidor" << std::endl;
+        return CONTINUE;
+    }
+    if (response.type() == FILE_UPDATED) {
+        std::cout << "Arquivo deletado no servidor" << std::endl;
+    }
+
     return CONTINUE;
 }
 
@@ -190,6 +218,7 @@ int upload(char *path) {
     }
     request.mutable_file_update()->mutable_data()->assign(std::istreambuf_iterator<char>(file),
                                                           std::istreambuf_iterator<char>());
+    request.mutable_file_update()->set_hash(sha256_file(filename));
     Connection conn(*mainConn);
     conn.sendRequest(request);
     auto maybeResponse = conn.receiveResponse();

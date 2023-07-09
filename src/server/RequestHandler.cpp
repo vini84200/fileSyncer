@@ -347,6 +347,7 @@ void RequestHandler::handleDownload(Request request, Header header) {
     response.mutable_file_update()->set_filename(request.filename());
     response.mutable_file_update()->set_deleted(false);
     response.mutable_file_update()->mutable_data()->assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+    response.mutable_file_update()->set_hash(sha256_file(filename));
 
     sendResponse(response);
 
