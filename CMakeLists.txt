@@ -10,6 +10,7 @@ project(fileSyncerCommon)
 add_library(fileSyncerCommon STATIC src/common/MessageComunication.cpp src/common/utils.cpp)
 include_directories(${OPENSSL_INCLUDE_DIR})
 target_link_libraries(fileSyncerCommon PRIVATE ${CMAKE_SOURCE_DIR}/lib/libcrypto.a ${CMAKE_SOURCE_DIR}/lib/libssl.a)
+target_compile_options(fileSyncerCommon PRIVATE -fpie)
 
 FetchContent_Declare(Protobuf
         GIT_REPOSITORY https://github.com/protocolbuffers/protobuf.git
