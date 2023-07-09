@@ -1,16 +1,15 @@
 cmake_minimum_required(VERSION 3.20)
 set(CMAKE_CXX_STANDARD 17)
 include(FetchContent)
-include(FindOpenSSL)
 
-set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-set(OPENSSL_USE_STATIC_LIBS TRUE)
 find_package(OpenSSL REQUIRED)
+message(STATUS "Using OpenSSL ${OPENSSL_VERSION}")
+message(STATUS "OpenSSL include dir: ${OPENSSL_INCLUDE_DIR}")
 
 project(fileSyncerCommon)
 add_library(fileSyncerCommon STATIC src/common/MessageComunication.cpp src/common/utils.cpp)
 include_directories(${OPENSSL_INCLUDE_DIR})
-target_link_libraries(fileSyncerCommon PRIVATE ${OPENSSL_LIBRARIES})
+target_link_libraries(fileSyncerCommon PRIVATE ${CMAKE_SOURCE_DIR}/lib/libcrypto.a ${CMAKE_SOURCE_DIR}/lib/libssl.a)
 
 FetchContent_Declare(Protobuf
         GIT_REPOSITORY https://github.com/protocolbuffers/protobuf.git
