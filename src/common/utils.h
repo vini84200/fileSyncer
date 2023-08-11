@@ -7,4 +7,4 @@
 
 std::basic_string<char> sha256_file(std::basic_string<char> path);
 
-#endif //FILESYNCERCLIENT_UTILS_H
+#endif // FILESYNCERCLIENT_UTILS_H
