@@ -8,7 +8,7 @@ RequestHandler *AdminListener::createRequestHandler(int socket) {
 }
 
 std::string AdminListener::getListenerName() {
-    return std::string();
+    return "AdminListener";
 }
 
 AdminListener::AdminListener(std::string host, int ip, Server *server)

@@ -82,6 +82,10 @@ void Server::start() {
         // If it is not, start the election
         if (!checkCoordinatorAlive()) { startElection(); }
     }
+
+    while (isRunning) {
+        sleep(2);
+    }
 }
 
 void Server::startAdminListener() {
