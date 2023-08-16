@@ -6,7 +6,7 @@ project(fileSyncerServer)
 project(fileSyncerClient)
 
 add_library(fileSyncerCommon STATIC src/common/MessageComunication.cpp
-                                    src/common/utils.cpp)
+        src/common/utils.cpp)
 include_directories(${OPENSSL_INCLUDE_DIR})
 
 # FetchContent_Declare(Protobuf GIT_REPOSITORY
@@ -22,33 +22,43 @@ include_directories(${Protobuf_INCLUDE_DIRS})
 # DEPENDS ${PROTOC} ${PROTO_DIR}/message.proto )
 
 add_executable(
-  fileSyncerServer src/server/main.cpp ${PROTO_SRCS} ${PROTO_HDRS}
-                   src/server/RequestHandler.cpp src/server/RequestHandler.h)
+        fileSyncerServer src/server/main.cpp ${PROTO_SRCS} ${PROTO_HDRS}
+        src/server/service/ServerRequestHandler.cpp
+        src/server/interfaces/RequestHandler.cpp
+        src/server/Server.cpp
+        src/server/ServerState.cpp
+        src/server/transactions/Transaction.cpp
+        src/server/interfaces/Listener.cpp
+        src/server/admin/AdminListener.cpp
+        src/server/admin/AdminRequestHandler.cpp
+        src/server/transactions/TransactionListener.cpp
+        src/server/transactions/TransactionListener.h
+)
 target_link_libraries(fileSyncerServer fileSyncerCommon proto protobuf
-                      ${Protobuf_LIBRARIES})
+        ${Protobuf_LIBRARIES})
 
 target_link_libraries(
-  fileSyncerCommon
-  ${OPENSSL_LIBRARIES}
-  proto
-  protobuf
-  ${Protobuf_LIBRARIES}
-  ssl
-  crypto)
+        fileSyncerCommon
+        ${OPENSSL_LIBRARIES}
+        proto
+        protobuf
+        ${Protobuf_LIBRARIES}
+        ssl
+        crypto)
 
 add_executable(
-  fileSyncerClient src/client/mainClient.cpp src/client/Connection.cpp
-                   ${PROTO_SRCS} ${PROTO_HDRS})
+        fileSyncerClient src/client/mainClient.cpp src/client/Connection.cpp
+        ${PROTO_SRCS} ${PROTO_HDRS})
 target_link_libraries(
-  fileSyncerClient
-  fileSyncerCommon
-  proto
-  protobuf
-  ${Protobuf_LIBRARIES}
-  ssl
-  crypto)
+        fileSyncerClient
+        fileSyncerCommon
+        proto
+        protobuf
+        ${Protobuf_LIBRARIES}
+        ssl
+        crypto)
 
-set(CMAKE_CXX_FLAGS "-g -Wall -std=c++11")
+set(CMAKE_CXX_FLAGS "-g -Wall -std=c++17")
 find_package(OpenSSL REQUIRED)
 message(STATUS "Using OpenSSL ${OPENSSL_VERSION}")
 message(STATUS "OpenSSL include dir: ${OPENSSL_INCLUDE_DIR}")

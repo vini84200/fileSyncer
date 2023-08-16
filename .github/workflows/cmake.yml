@@ -28,7 +28,7 @@ jobs:
       with:
         vcpkgGitCommitId: 'f6a5d4e8eb7476b8d7fc12a56dff300c1c986131'
         
-    - run: sudo apt install protobuf-compiler libssl-dev -y
+    - run: sudo apt install protobuf-compiler libssl-dev openssl -y
 
     - name: Run CMake consuming CMakePreset.json and run vcpkg to build dependencies
       uses: lukka/run-cmake@v10

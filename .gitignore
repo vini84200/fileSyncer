@@ -3,3 +3,4 @@
 *.pdf
 /build/
 peda-session-*
+config.txt
