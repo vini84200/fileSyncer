@@ -28,10 +28,35 @@ void ServiceRequestHandler::handleRequest() {
     auto h = msg.value().first;
     auto r = msg.value().second;
 
+    printf("Request type: %d\n", r.type());
+
     if (r.type() == LOGIN) {
         handleLogin(r, h);
         return;
     }
+
+    {
+        // Check if session is valid
+        std::string user;
+        {
+            auto read_guard = server->getReadStateGuard();
+            // Get the user
+            auto &state = read_guard.get();
+            if (!state.isSessionValid(h.session_id)) {
+                Response r;
+                r.set_type(ERROR);
+                r.set_error_msg("Invalid session");
+                sendMessage(r);
+                endConnection();
+                return;
+            }
+            user = state.getUserFromSesssion(h.session_id);
+        }
+
+        // Run the handler
+
+    }
+
 }
 
 void ServiceRequestHandler::handleLogin(Request request,

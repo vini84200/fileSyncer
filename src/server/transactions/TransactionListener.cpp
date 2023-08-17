@@ -4,7 +4,7 @@
 
 #include "TransactionListener.h"
 
-RequestHandler *
+RequestHandler<TransactionMsg>*
 TransactionListener::createRequestHandler(int socket) {
     return nullptr;
 }

@@ -5,7 +5,7 @@
 #include "ServiceListener.h"
 #include "ServiceRequestHandler.h"
 
-RequestHandler *ServiceListener::createRequestHandler(int socket) {
+RequestHandler<Request> *ServiceListener::createRequestHandler(int socket) {
     return new ServiceRequestHandler(socket, server);
 }
 

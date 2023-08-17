@@ -103,3 +103,19 @@ message CreateSessionTransactionMsg {
   required int32 session_id = 1;
   required string username = 2;
 }
+
+enum AdminMsgType {
+  // Heartbeat request
+  HEARTBEAT = 0;
+  // Leader Election
+  ELECTION = 1;
+  ELECTION_ANSWER = 2;
+  ELECTION_COORDINATOR = 3;
+
+
+
+}
+
+message AdminMsg {
+  required AdminMsgType type = 1;
+}

@@ -16,6 +16,8 @@ protected:
 public:
     TransactionMsg *serialize() override;
     void deserialize(TransactionMsg *msg) override;
+    std::string getTransactionName() override;
+    std::string toString() override;
 
 protected:
     int sessionID;

@@ -37,3 +37,11 @@ void CreateSessionTransaction::deserialize(TransactionMsg *msg) {
 int CreateSessionTransaction::getTid() {
     return tid;
 }
+
+std::string CreateSessionTransaction::getTransactionName() {
+    return "CreateSessionTransaction";
+}
+
+std::string CreateSessionTransaction::toString() {
+    return "CreateSessionTransaction: " + std::to_string(sessionID) + " " + username;
+}

@@ -7,8 +7,8 @@
 
 #include "../interfaces/Listener.h"
 
-class TransactionListener : Listener {
-    RequestHandler *createRequestHandler(int socket) override;
+class TransactionListener : Listener<TransactionMsg> {
+    RequestHandler<TransactionMsg> *createRequestHandler(int socket) override;
     std::string getListenerName() override;
 };
 

@@ -41,3 +41,11 @@ void CreateUserTransaction::deserialize(TransactionMsg *msg) {
     username = msg->create_user().username();
     password = msg->create_user().password();
 }
+
+std::string CreateUserTransaction::getTransactionName() {
+    return "CreateUserTransaction";
+}
+
+std::string CreateUserTransaction::toString() {
+    return "CreateUserTransaction: " + username + " ****";
+}

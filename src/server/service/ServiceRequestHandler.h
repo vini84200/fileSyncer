@@ -8,7 +8,7 @@
 #include "../Server.h"
 #include "../interfaces/RequestHandler.h"
 
-class ServiceRequestHandler : public RequestHandler {
+class ServiceRequestHandler : public RequestHandler<Request> {
 public:
     ServiceRequestHandler(int socket, Server *server);
     void handleRequest() override;

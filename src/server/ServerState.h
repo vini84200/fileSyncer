@@ -27,14 +27,13 @@ public:
     bool isSessionValid(SessionId session_id)const;
 
     int getNumberOfSessions();
-    std::string getUsernameFromSession(SessionId session_id);
-
     bool isValid();
     [[nodiscard]] bool hasUser(const std::string &username) const;
     int nextTid() const;
     bool checkPassword(const std::string &username,
                        const std::string &password) const;
     void addUser(std::string username, std::string password);
+    std::string getUserFromSesssion(long session) const;
 };
 
 

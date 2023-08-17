@@ -12,7 +12,7 @@
 #include <sys/socket.h>
 
 // This class will handle the requests from the client
-class ServerRequestHandler : public RequestHandler {
+class ServerRequestHandler : public RequestHandler<Request> {
 
 public:
     // Will run in a separate thread

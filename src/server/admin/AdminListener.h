@@ -9,9 +9,9 @@
 #include "../Server.h"
 #include "../interfaces/Listener.h"
 
-class AdminListener : public Listener {
+class AdminListener : public Listener<AdminMsg> {
 protected:
-    RequestHandler *createRequestHandler(int socket) override;
+    RequestHandler<AdminMsg> *createRequestHandler(int socket) override;
     std::string getListenerName() override;
 
 public:

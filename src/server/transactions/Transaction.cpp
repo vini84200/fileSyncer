@@ -14,6 +14,7 @@ Transaction::Transaction() {
 
 void Transaction::begin() {
     has_began_ = true;
+    printf("Transaction %d began (%s)\n", tid, toString().c_str());
 }
 
 bool Transaction::run() {
@@ -34,6 +35,7 @@ bool Transaction::commit() {
         is_committed_ = true;
         // Set the result
         state_->set(*work_state_);
+        printf("Transaction %d committed (%s)\n", tid, toString().c_str());
         // Delete the original state
         return true;
     }
@@ -55,6 +57,7 @@ void Transaction::forceRollback() {
 void Transaction::rollback() {
     if (has_began_) {
         hasRollback     = true;
+        printf("Transaction %d rolled back (%s)\n", tid, toString().c_str());
         // The original state is the one that is valid
         // Delete the work state
         delete work_state_;
@@ -68,6 +71,7 @@ bool Transaction::prepareCommit() {
 
     if (work_state_->isValid()) {
         is_prepared_ = true;
+        printf("Transaction %d prepared to commit. (%s)\n", tid, toString().c_str());
         return true;
     }
 

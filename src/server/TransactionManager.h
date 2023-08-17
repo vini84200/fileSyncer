@@ -18,12 +18,11 @@ public:
     void setIsCoordinator(bool b);
 
 private:
-    bool isTransactionActive_;
-    bool isTransactionPrepared_;
-    bool isTransactionCommitted_;
+    bool isTransactionActive_ = false;
     bool isCoordinator_;
     Transaction *activeTransaction_;
     SharedData<ServerState> &state_;
+    int lastTid = 0;
 
 private:
     void initTransaction();

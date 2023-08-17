@@ -7,7 +7,7 @@
 
 #include "../interfaces/RequestHandler.h"
 
-class AdminRequestHandler : public RequestHandler {
+class AdminRequestHandler : public RequestHandler<AdminMsg> {
 public:
     void handleRequest() override;
 };

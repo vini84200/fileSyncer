@@ -35,20 +35,20 @@ protected:
     bool prepareCommit();
 
     Transaction();
+    int tid;
 
 public:
-    explicit Transaction(ServerState **state);
     bool run();
     void forceRollback();
     bool commit();
     bool isPrepared();
     void setTid(int id);
-    int setState(ServerState **state);
-    int tid;
     int setState(WriteLock<ServerState> *state);
     TransactionStatus getStatus();
     virtual TransactionMsg *serialize() = 0;
     virtual void deserialize(TransactionMsg *msg) = 0;
+    virtual std::string getTransactionName() = 0;
+    virtual std::string toString() = 0;
 };
 
 

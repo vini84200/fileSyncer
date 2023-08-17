@@ -36,3 +36,7 @@ void ServerState::addUser(std::string username,
                           std::string password) {
     senhas.emplace(std::move(username), std::move(password));
 }
+
+std::string ServerState::getUserFromSesssion(long session) const {
+    return logged_user_sessions.at(session);
+}

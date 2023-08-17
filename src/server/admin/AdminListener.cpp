@@ -4,7 +4,7 @@
 
 #include "AdminListener.h"
 
-RequestHandler *AdminListener::createRequestHandler(int socket) {
+RequestHandler<AdminMsg> *AdminListener::createRequestHandler(int socket) {
 }
 
 std::string AdminListener::getListenerName() {

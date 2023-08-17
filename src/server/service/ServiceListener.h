@@ -9,9 +9,9 @@
 
 class Server;
 
-class ServiceListener : public Listener {
+class ServiceListener : public Listener<Request> {
 private:
-    RequestHandler *createRequestHandler(int socket) override;
+    RequestHandler<Request> *createRequestHandler(int socket) override;
     std::string getListenerName() override;
     Server *server;
 public:

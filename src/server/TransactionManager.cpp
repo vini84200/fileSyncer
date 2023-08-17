@@ -68,10 +68,8 @@ bool TransactionManager::receiveConfirmation() {
 
 void TransactionManager::initTransaction() {
     isTransactionActive_ = true;
-    isTransactionPrepared_ = false;
-    isTransactionCommitted_ = false;
     // Get id for the transaction
-    int tid = state_.getData().nextTid();
+    int tid = ++lastTid;
     // Create the transaction
     activeTransaction_->setTid(tid);
 }
