@@ -38,7 +38,6 @@ enum ResponseType {
 message Response {
   required ResponseType type = 1;
   // ERROR
-  optional string error_message = 4;
   // UPLOAD | DOWNLOAD | LIST | UPDATED
   optional string error_msg = 2;
   // LOGIN
@@ -67,4 +66,40 @@ message FileUpdate {
   required bool deleted = 2;
   required bytes data = 3;
   required bytes hash = 4;
+}
+
+
+enum TransactionType {
+  CREATE_USER = 0;
+  CREATE_SESSION = 1;
+}
+
+message TransactionMsg {
+  required TransactionType type = 1;
+  required int32 transaction_id = 2;
+  optional CreateUserTransactionMsg create_user = 3;
+  optional CreateSessionTransactionMsg create_session = 4;
+}
+
+enum TransactionVote {
+  COMMIT = 0;
+  ROLLBACK = 1;
+}
+
+message TransactionVoteMsg {
+  required TransactionVote vote = 1;
+}
+
+message TransactionResultMsg {
+  required TransactionVote result = 1;
+}
+
+message CreateUserTransactionMsg {
+  required string username = 1;
+  required string password = 2;
+}
+
+message CreateSessionTransactionMsg {
+  required int32 session_id = 1;
+  required string username = 2;
 }

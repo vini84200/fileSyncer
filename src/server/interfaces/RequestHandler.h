@@ -12,7 +12,7 @@
 #include <sys/socket.h>
 
 class RequestHandler {
-    sockaddr_storage *client_addr;
+protected:
     int client_fd;
     pthread_t thread_;
 
@@ -21,6 +21,7 @@ class RequestHandler {
     bool receiveBytes(char *bytes, size_t bytes_to_receive);
 
 public:
+    RequestHandler(int socket);
     std::optional<std::pair<Header, std::string>> receiveMsg();
     virtual void handleRequest() = 0;
     bool sendMessage(Message msg);

@@ -15,6 +15,7 @@ public:
     void start();
     void stop();
 
+private:
     static void *run(void *args);
     void execute();
 

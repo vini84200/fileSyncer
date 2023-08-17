@@ -5,7 +5,10 @@
 #ifndef FILESYNCERCLIENT_SERVER_H
 #define FILESYNCERCLIENT_SERVER_H
 
+#include "../common/RwLock.h"
 #include "ServerState.h"
+#include "TransactionManager.h"
+#include "service/ServiceListener.h"
 
 class AdminListener;
 
@@ -16,8 +19,13 @@ public:
     void start();
     void stop();
 
+    ReadLock<ServerState> getReadStateGuard();
+    WriteLock<ServerState> getWriteStateGuard();
+
+    TransactionManager &getTransactionManager();
+
 private:
-    ServerState *state_;
+    SharedData<ServerState> state;
     bool isCoordinator;
     bool isRunning;
 
@@ -28,7 +36,9 @@ private:
     std::string server_host;
     std::vector<std::tuple<int, std::string>> servers;
 
+    TransactionManager transaction_manager;
     AdminListener *admin_listener;
+    ServiceListener *service_listener;
 
     void startCoordinator();
     void startElection();

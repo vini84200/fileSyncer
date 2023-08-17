@@ -6,7 +6,8 @@ project(fileSyncerServer)
 project(fileSyncerClient)
 
 add_library(fileSyncerCommon STATIC src/common/MessageComunication.cpp
-        src/common/utils.cpp)
+        src/common/utils.cpp
+        src/common/RwLock.h)
 include_directories(${OPENSSL_INCLUDE_DIR})
 
 # FetchContent_Declare(Protobuf GIT_REPOSITORY
@@ -33,6 +34,15 @@ add_executable(
         src/server/admin/AdminRequestHandler.cpp
         src/server/transactions/TransactionListener.cpp
         src/server/transactions/TransactionListener.h
+        src/server/service/ServiceRequestHandler.cpp
+        src/server/service/ServiceRequestHandler.h
+        src/server/service/ServiceListener.cpp
+        src/server/service/ServiceListener.h
+        src/server/TransactionManager.cpp
+        src/server/TransactionManager.h
+        src/server/transactions/CreateUserTransaction.cpp
+        src/server/transactions/CreateSessionTransaction.cpp
+
 )
 target_link_libraries(fileSyncerServer fileSyncerCommon proto protobuf
         ${Protobuf_LIBRARIES})

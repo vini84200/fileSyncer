@@ -3,13 +3,18 @@
 //
 
 #include "Server.h"
+#include "../common/RwLock.h"
 #include "admin/AdminListener.h"
 #include <fstream>
 #include <sstream>
 
-Server::Server() {
+Server::Server()
+        : state(ServerState()),
+            transaction_manager(false, state)
+{
     isCoordinator = false;
-    state_        = new ServerState();
+    ServerState initial_state = ServerState();
+
 
     loadConfig();
 }
@@ -73,13 +78,17 @@ void Server::start() {
     // Waits warmup time to start the election
     // This is to prevent the servers from starting the election before
     // all of them are up and listening to the admin port
+    printf("Waiting %d seconds to start the election\n", warmup_time);
     sleep(warmup_time);
+    printf("Warmup time finished\n");
     // Check if there is a coordinator
     if (coordinator_id == -1) {
+        printf("No coordinator found\n Starting an election\n");
         startElection();
     } else {
         // Check if the coordinator is alive
         // If it is not, start the election
+        printf("Coordinator found\n");
         if (!checkCoordinatorAlive()) { startElection(); }
     }
 
@@ -96,10 +105,23 @@ void Server::startAdminListener() {
 
 void Server::startElection() {
     // TODO: Implement
+    // Temporary solution
+    coordinator_id = server_id;
+    isCoordinator = true;
+    startCoordinator();
 }
 
 void Server::startCoordinator() {
-    // TODO: Implement
+    printf("We are the coordinator\n");
+    transaction_manager.setIsCoordinator(true);
+
+    // TODO: Notify the other servers
+
+    // Start the recovery process
+
+    // Start the Service Listener
+    service_listener = new ServiceListener(server_host, server_port, this);
+    service_listener->start();
 }
 
 bool Server::checkCoordinatorAlive() {
@@ -107,11 +129,22 @@ bool Server::checkCoordinatorAlive() {
 }
 
 void Server::startTransactionListener() {
-    // TODO: Implement
 }
 
 void Server::stop() {
     isRunning = false;
     if (admin_listener != nullptr) { admin_listener->stop(); }
     // TODO: Stop the other listeners
+}
+
+ReadLock<ServerState> Server::getReadStateGuard() {
+    return {state};
+}
+
+WriteLock<ServerState> Server::getWriteStateGuard() {
+    return {state};
+}
+
+TransactionManager &Server::getTransactionManager() {
+    return transaction_manager;
 }

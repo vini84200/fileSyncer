@@ -17,7 +17,7 @@
 #include "proto/message.pb.h"
 #include "../common/utils.h"
 #include <openssl/sha.h>
-#define PORT  3490
+#define PORT 8989
 #define EVENT_SIZE  (sizeof(struct inotify_event))
 #define BUF_INOTIFY_LEN (1024 * (EVENT_SIZE + 16))
 

@@ -104,7 +104,7 @@ pthread_t RequestHandler::start() {
 
 RequestHandler::RequestHandler(sockaddr_storage client_addr,
                                int client_fd)
-    : client_addr(&client_addr), client_fd(client_fd) {
+    : client_fd(client_fd) {
 }
 
 bool RequestHandler::endConnection() {
@@ -130,4 +130,8 @@ void RequestHandler::stop() {
     is_running = false;
     endConnection();
     pthread_join(thread_, nullptr);
+}
+
+RequestHandler::RequestHandler(int socket) {
+    client_fd = socket;
 }
