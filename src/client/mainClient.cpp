@@ -105,7 +105,7 @@ void verifica_modificacao(int *file_descriptor, char buffer_inotify[BUF_INOTIFY_
                 // Calcula o hash do arquivo
                 FileDigest hash = getFileDigest(syncDirPath + "/" + filename);
 
-                request.mutable_file_update()->set_hash(digest_to_string(hash.data()));
+                request.mutable_file_update()->set_hash(digest_to_string(hash));
 
                 conn.sendRequest(request);
                 auto maybeResponse = conn.receiveResponse();

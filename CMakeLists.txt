@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 set(CMAKE_CXX_STANDARD 17)
+include(FetchContent)
 
 project(fileSyncerCommon)
 project(fileSyncerServer)
@@ -16,7 +17,6 @@ add_library(fileSyncerCommon STATIC src/common/MessageComunication.cpp
 
 add_subdirectory(proto)
 
-add_subdirectory(external/)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${Protobuf_INCLUDE_DIRS})
@@ -73,3 +73,13 @@ set(CMAKE_CXX_FLAGS "-g -Wall -std=c++17")
 
 find_package(Protobuf REQUIRED)
 include_directories(${Protobuf_INCLUDE_DIRS})
+
+FetchContent_Declare(
+        xxhash_cpp
+        GIT_REPOSITORY git@github.com:RedSpah/xxhash_cpp.git
+        GIT_TAG        0.8.1
+)
+
+FetchContent_MakeAvailable(xxhash_cpp)
+
+target_link_libraries(fileSyncerCommon xxhash_cpp)

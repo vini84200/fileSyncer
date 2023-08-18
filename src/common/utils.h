@@ -7,9 +7,10 @@
 
 typedef unsigned char byte;
 typedef std::basic_string<byte> byte_string;
-typedef byte_string FileDigest;
+typedef unsigned long FileDigest;
 
-#define DIGEST_SIZE 32
+#define DIGEST_SIZE 8
+#define CHUNK_SIZE (1024 * 1024 * 2) // 2MB
 
 FileDigest getFileDigest(std::string path);
 std::string digest_to_string(const FileDigest &md);
