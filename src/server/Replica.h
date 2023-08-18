@@ -37,6 +37,15 @@ public:
     bool checkAlive();
     static void* checkAliveRunThread(void* replica);
 
+    ConnectionArgs getServiceConnectionArgs() {
+        return ConnectionArgs(host, servicePort);
+    }
+    ConnectionArgs getAdminConnectionArgs() {
+        return ConnectionArgs(host, adminPort);
+    }
+    ConnectionArgs getTransactionConnectionArgs() {
+        return ConnectionArgs(host, transactionPort);
+    }
 
 
     // Getters and Setters

@@ -47,7 +47,9 @@ class Connection {
 public:
     Connection(ConnectionArgs args);
 
-    Connection(Connection &other); // copy constructor
+    Connection(const Connection &other); // copy constructor
+    // move constructor
+    Connection(Connection &&other) noexcept;
     ~Connection();
 
 
@@ -211,7 +213,7 @@ bool Connection<Req, Res>::sendMessage(Message msg) {
 }
 
 template<typename Req, typename Res>
-Connection<Req, Res>::Connection(Connection &other) : args(other.args) {
+Connection<Req, Res>::Connection(const Connection &other) : args(other.args) {
     currConnState = ConnectionState::NOT_INITIALIZED;
     struct addrinfo hints, *servinfo, *p;
     int rv;
@@ -249,6 +251,8 @@ Connection<Req, Res>::Connection(Connection &other) : args(other.args) {
     freeaddrinfo(servinfo);
 }
 
+template<typename Req, typename Res>
+Connection<Req, Res>::Connection(Connection<Req, Res> &&other)  noexcept = default;
 
 template<typename Req, typename Res>
 bool Connection<Req, Res>::sendRequest(Req request) {

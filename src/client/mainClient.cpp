@@ -14,7 +14,6 @@
 #include "../common/MessageComunication.h"
 #include "../common/utils.h"
 #include "ClientConnection.h"
-#include "Connection.h"
 #include "proto/message.pb.h"
 #include <openssl/sha.h>
 #include <sys/inotify.h>

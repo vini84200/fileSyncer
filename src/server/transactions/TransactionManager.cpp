@@ -49,7 +49,31 @@ bool TransactionManager::doTransaction(Transaction &transaction) {
 }
 
 void TransactionManager::sendVote(bool vote, int tid) {
-    //
+    // Send a vote to the coordinator
+    Connection<TransactionOuterMsg, TransactionOuterMsg> c(server->getCoordinator().getTransactionConnectionArgs());
+    TransactionOuterMsg msg;
+    msg.set_type(TransactionOuterType::TRANSACTION_VOTE);
+    msg.mutable_vote()->set_transaction_id(tid);
+    msg.mutable_vote()->set_vote(vote ? TransactionVote::COMMIT : TransactionVote::ROLLBACK);
+    c.sendRequest(msg);
+    c.setTimout(2000); // 1 second timeout
+    auto resp = c.receiveResponse();
+    if (!resp.has_value()) {
+        printf("WARN: Could not receive ack from coordinator for "
+               "vote of transaction %d\n",
+               tid);
+        server->startElection();
+    }
+    else {
+        auto header = resp.value().first;
+        auto msg = resp.value().second;
+        if (msg.type() != TransactionOuterType::TRANSACTION_OK_ACK) {
+            printf("WARN: Received an invalid ack from coordinator for "
+                   "vote of transaction %d\n",
+                   tid);
+        }
+        // Everything is ok
+    }
 }
 
 void TransactionManager::initTransaction() {
@@ -121,6 +145,16 @@ void TransactionManager::addVote(bool vote, int tid) {
 }
 
 void TransactionManager::receiveResult(bool res, int32_t t_id) {
+    if (t_id != activeTransaction_->getTid()) {
+        printf("WARN: Tried to add a vote for a transaction that is not "
+               "the active one\n");
+        return;
+    }
+    pthread_mutex_lock(&result_mutex);
+    result = res;
+    hasResult = true;
+    pthread_mutex_unlock(&result_mutex);
+    pthread_cond_signal(&result_cond);
 }
 
 bool TransactionManager::receiveNewTransaction(
@@ -159,11 +193,46 @@ bool TransactionManager::receiveNewTransaction(
 }
 
 void TransactionManager::sendResult(bool result, int tid) {
-    for (auto s: server->getActiveServers()) {
+    std::vector<Connection<TransactionOuterMsg, TransactionOuterMsg>> connections;
+    std::vector<Replica*> servers = server->getActiveServers();
 
+    for (auto s: servers) {
+        Connection<TransactionOuterMsg, TransactionOuterMsg> c(s->getTransactionConnectionArgs());
+        TransactionOuterMsg msg;
+        msg.set_type(TransactionOuterType::TRANSACTION_RESULT);
+        msg.mutable_result()->set_transaction_id(tid);
+        msg.mutable_result()->set_result(result ? TransactionVote::COMMIT : TransactionVote::ROLLBACK);
+
+        c.sendRequest(msg);
+        connections.emplace_back(std::move(c));
+    }
+    // Get the acks
+    for (auto &c: connections) {
+        c.setTimout(1000); // 1 second timeout
+        auto resp = c.receiveResponse();
+        if (!resp.has_value()) {
+            printf("WARN: Could not receive ack from server for "
+                    "commit of transaction %d\n", tid);
+            // TODO: Find what server is down and remove it from the list
+        } else {
+            auto header = resp.value().first;
+            auto msg = resp.value().second;
+            if (msg.type() != TransactionOuterType::TRANSACTION_OK_ACK) {
+                printf("WARN: Received an invalid ack from server for "
+                        "commit of transaction %d\n", tid);
+            }
+            // Everything is ok
+        }
     }
 }
 
 bool TransactionManager::waitResult() {
-    return false;
+    pthread_mutex_lock(&result_mutex);
+    while (!hasResult) {
+        pthread_cond_wait(&result_cond, &result_mutex);
+    }
+    bool result1 = result;
+    hasResult = false;
+    pthread_mutex_unlock(&result_mutex);
+    return result1;
 }

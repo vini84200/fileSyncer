@@ -27,6 +27,10 @@ public:
     TransactionManager &getTransactionManager();
 
     std::vector<Replica *> getActiveServers();
+    bool hasCoordinator();
+    void setCoordinator(int id);
+    Replica& getCoordinator();
+    void startElection();
 private:
     SharedData<ServerState> state;
     bool isCoordinator;
@@ -46,13 +50,13 @@ private:
     TransactionListener *transaction_listener;
 
     void startCoordinator();
-    void startElection();
 
     void startAdminListener();
     unsigned int warmup_time = 15;
     int coordinator_id       = -1;
     bool checkCoordinatorAlive();
     void startTransactionListener();
+
 
 };
 

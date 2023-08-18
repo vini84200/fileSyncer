@@ -25,7 +25,8 @@ include_directories(${Protobuf_INCLUDE_DIRS})
 # DEPENDS ${PROTOC} ${PROTO_DIR}/message.proto )
 
 add_executable(
-        fileSyncerServer src/server/main.cpp ${PROTO_SRCS} ${PROTO_HDRS}
+        fileSyncerServer
+        src/server/main.cpp ${PROTO_SRCS} ${PROTO_HDRS}
         src/server/service/ServerRequestHandler.cpp
         src/server/Server.cpp
         src/server/ServerState.cpp
@@ -58,7 +59,9 @@ target_link_libraries(
         )
 
 add_executable(
-        fileSyncerClient src/client/mainClient.cpp
+        fileSyncerClient
+        src/client/mainClient.cpp
+        src/client/ClientConnection.cpp
         ${PROTO_SRCS} ${PROTO_HDRS})
 target_link_libraries(
         fileSyncerClient

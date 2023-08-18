@@ -196,3 +196,7 @@ std::vector<Replica*> Server::getActiveServers() {
     }
     return active_servers;
 }
+
+Replica &Server::getCoordinator() {
+    return servers.at(coordinator_id);
+}

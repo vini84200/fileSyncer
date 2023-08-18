@@ -5,7 +5,7 @@
 #include "Replica.h"
 
 bool Replica::checkAliveBlocking() {
-    Connection<AdminMsg, AdminMsg> connection(ConnectionArgs(host, adminPort));
+    Connection<AdminMsg, AdminMsg> connection(getAdminConnectionArgs());
     AdminMsg* hbReq  = new AdminMsg();
     hbReq->set_type(AdminMsgType::HEARTBEAT);
     connection.sendRequest(*hbReq);
@@ -16,8 +16,11 @@ bool Replica::checkAliveBlocking() {
         printf("Replica %d is dead!!\n", id);
         pthread_mutex_lock(&mutex);
         isAlive = false;
-        lastHeartbeat = time(NULL);
         pthread_mutex_unlock(&mutex);
+        if (isCoordinator) {
+            // TODO: Handle coordinator death, start a new election
+
+        }
         return false;
     }
     auto header = hbResp.value().first;
@@ -28,6 +31,10 @@ bool Replica::checkAliveBlocking() {
             printf("Replica %d is alive again!! It will be ignored because it has an old state\n", id);
         } else {
             isAlive = true;
+            // Save the last heartbeat time
+            lastHeartbeat = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::system_clock::now().time_since_epoch()
+            ).count();
         }
         pthread_mutex_unlock(&mutex);
         return true;
