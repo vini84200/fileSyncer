@@ -103,8 +103,9 @@ void verifica_modificacao(int *file_descriptor, char buffer_inotify[BUF_INOTIFY_
                 request.mutable_file_update()->mutable_data()->assign(std::istreambuf_iterator<char>(file),
                                                                        std::istreambuf_iterator<char>());
                 // Calcula o hash do arquivo
-                std::string hash_str = sha256_file(syncDirPath + "/" + filename);
-                request.mutable_file_update()->set_hash(hash_str);
+                FileDigest hash = getFileDigest(syncDirPath + "/" + filename);
+
+                request.mutable_file_update()->set_hash(digest_to_string(hash.data()));
 
                 conn.sendRequest(request);
                 auto maybeResponse = conn.receiveResponse();
@@ -219,7 +220,7 @@ int upload(char *path) {
     }
     request.mutable_file_update()->mutable_data()->assign(std::istreambuf_iterator<char>(file),
                                                           std::istreambuf_iterator<char>());
-    request.mutable_file_update()->set_hash(sha256_file(filename));
+    request.mutable_file_update()->set_hash(digest_to_string(getFileDigest(filename)));
     Connection conn(*mainConn);
     conn.sendRequest(request);
     auto maybeResponse = conn.receiveResponse();
@@ -378,8 +379,9 @@ void *thread_updates(void *) {
                     std::remove(path.c_str());
                 } else {
                     // Check the hash
-                    std::string hash = sha256_file(path);
-                    if (hash == res.file_update().hash()) {
+                    FileDigest hash = getFileDigest(path);
+
+                    if (digest_to_string(hash) == res.file_update().hash()) {
                         std::cout << "File already up to date" << std::endl;
                         muteUpdate = false;
                         continue;

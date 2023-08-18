@@ -9,13 +9,14 @@ add_library(fileSyncerCommon STATIC src/common/MessageComunication.cpp
         src/common/utils.cpp
         src/common/RwLock.h
         src/client/ClientConnection.cpp)
-include_directories(${OPENSSL_INCLUDE_DIR})
 
 # FetchContent_Declare(Protobuf GIT_REPOSITORY
 # https://github.com/protocolbuffers/protobuf.git GIT_TAG        v3.21.12
 # FIND_PACKAGE_ARGS NAMES Protobuf ) FetchContent_MakeAvailable(Protobuf)
 
 add_subdirectory(proto)
+
+add_subdirectory(external/)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${Protobuf_INCLUDE_DIRS})
@@ -52,12 +53,10 @@ target_link_libraries(fileSyncerServer fileSyncerCommon proto protobuf
 
 target_link_libraries(
         fileSyncerCommon
-        ${OPENSSL_LIBRARIES}
         proto
         protobuf
         ${Protobuf_LIBRARIES}
-        ssl
-        crypto)
+        )
 
 add_executable(
         fileSyncerClient src/client/mainClient.cpp src/client/Connection.cpp
@@ -68,13 +67,9 @@ target_link_libraries(
         proto
         protobuf
         ${Protobuf_LIBRARIES}
-        ssl
-        crypto)
+        )
 
 set(CMAKE_CXX_FLAGS "-g -Wall -std=c++17")
-find_package(OpenSSL REQUIRED)
-message(STATUS "Using OpenSSL ${OPENSSL_VERSION}")
-message(STATUS "OpenSSL include dir: ${OPENSSL_INCLUDE_DIR}")
 
 find_package(Protobuf REQUIRED)
 include_directories(${Protobuf_INCLUDE_DIRS})
