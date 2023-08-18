@@ -6,20 +6,21 @@ void Election::startElection() {
 
     // Send election message to higher server ids
     for (int i = serverId + 1; i < servers.size(); ++i) {
-        std::cout << "Server " << serverId << " sends ELECTION message to server " << servers[i] << ".\n";
+        std::cout << "Server " << serverId << " sends ELECTION message to server " << servers[i]->getId() << ".\n";
     }
 
     // Receive responses
     for (int i = serverId + 1; i < servers.size(); ++i) {
         // Simulating a response from servers with higher IDs
-        if (servers[i] > highestId) {
-            highestId = servers[i];
+        if (servers[i]->getId() > highestId) {
+            highestId = servers[i]->getId();
         }
     }
 
     if (highestId == serverId) {
         // This server becomes the leader
         std::cout << "Server " << serverId << " becomes the leader.\n";
+        setCoordinator(highestId);
     } else {
         // Send COORDINATOR message to the elected leader
         std::cout << "Server " << serverId << " sends COORDINATOR message to servers " << highestId << ".\n";

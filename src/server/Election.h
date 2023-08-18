@@ -4,15 +4,16 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include "Server.h"
 
 class Election {
 private:
     int serverId;
-    std::vector<int> servers;
+    std::vector<Replica*> servers;
 
 
 public:
-    Election(int id, const std::vector<int>& ids) : serverId(id), servers(ids) {}
+    Election(int id, const std::vector<Replica*>& ids) : serverId(id), servers(ids) {}
 
     void startElection();
 };

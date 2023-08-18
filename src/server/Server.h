@@ -7,6 +7,7 @@
 
 #include "../common/RwLock.h"
 #include "Replica.h"
+#include "Election.h"
 #include "ServerState.h"
 #include "service/ServiceListener.h"
 #include "transactions/TransactionManager.h"
@@ -51,6 +52,7 @@ private:
     AdminListener *admin_listener;
     ServiceListener *service_listener;
     TransactionListener *transaction_listener;
+
 
     void startCoordinator();
 

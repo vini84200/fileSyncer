@@ -145,9 +145,8 @@ void Server::startAdminListener() {
 }
 
 void Server::startElection() {
-    // TODO: Implement the election algorithm
-    // Temporary solution: The server with ID 1 is the coordinator
-    setCoordinator(1);
+    Election *newElection = new Election(server_id, getActiveServers());
+    newElection->startElection();
 }
 
 void Server::startCoordinator() {
