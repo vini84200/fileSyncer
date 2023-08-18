@@ -16,8 +16,9 @@ template <typename T>
 class Listener {
 public:
     Listener(std::string host, int port);
-    void start();
     void stop();
+
+    void start();
 
 private:
     static void *run(void *args);
@@ -114,7 +115,7 @@ void Listener<T>::execute() {
 
         auto *handler = createRequestHandler(client_socket_fd);
         handler->start();
-        handlers.push_back(handler);
+        handlers.emplace_back(handler);
     }
     close(socket_fd);
 }

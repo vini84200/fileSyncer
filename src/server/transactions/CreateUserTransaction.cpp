@@ -27,13 +27,11 @@ CreateUserTransaction::CreateUserTransaction(
     this->password = password;
 }
 
-TransactionMsg *CreateUserTransaction::serialize() {
-    TransactionMsg *msg = new TransactionMsg();
+void *CreateUserTransaction::serialize(TransactionMsg *msg) {
     msg->set_transaction_id(tid);
     msg->set_type(TransactionType::CREATE_USER);
     msg->mutable_create_user()->set_username(username);
     msg->mutable_create_user()->set_password(password);
-    return msg;
 }
 
 void CreateUserTransaction::deserialize(const TransactionMsg *msg) {

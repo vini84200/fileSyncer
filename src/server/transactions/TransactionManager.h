@@ -5,8 +5,8 @@
 #ifndef FILESYNCERCLIENT_TRANSACTIONMANAGER_H
 #define FILESYNCERCLIENT_TRANSACTIONMANAGER_H
 
-#include "../common/RwLock.h"
-#include "transactions/Transaction.h"
+#include "../../common/RwLock.h"
+#include "Transaction.h"
 
 class Server;
 class TransactionManager {
@@ -66,6 +66,10 @@ private:
     pthread_cond_t votes_cond;
     void sendResult(bool result, int tid);
     bool waitResult();
+    pthread_mutex_t result_mutex = PTHREAD_MUTEX_INITIALIZER;
+    bool hasResult = false;
+    bool result = false;
+    pthread_cond_t result_cond;
 };
 
 

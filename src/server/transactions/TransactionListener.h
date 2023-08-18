@@ -8,11 +8,13 @@
 #include "../Server.h"
 #include "../interfaces/Listener.h"
 
-class TransactionListener : Listener<TransactionOuterMsg> {
-    TransactionListener(std::string host, int port, Server *server);
+class TransactionListener : public Listener<TransactionOuterMsg> {
     RequestHandler<TransactionOuterMsg> *createRequestHandler(int socket) override;
     std::string getListenerName() override;
     Server *server;
+
+public:
+    TransactionListener(std::string host, int port, Server *server);
 };
 
 

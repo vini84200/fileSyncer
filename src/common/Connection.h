@@ -27,6 +27,11 @@ struct ConnectionArgs {
             std::string username,
             std::string password
     ) : hostname(hostname), port(port), username(username), password(password) {};
+
+    ConnectionArgs(
+            std::string hostname,
+            int port
+    ) : hostname(hostname), port(port) {};
 };
 
 enum class ConnectionState {
@@ -42,11 +47,21 @@ class Connection {
 public:
     Connection(ConnectionArgs args);
 
-    Connection(Connection &other); // copy constructor
+    Connection(const Connection &other); // copy constructor
+    // move constructor
+    Connection(Connection &&other) noexcept;
     ~Connection();
 
 
     ConnectionState getConnectionState();
+
+    void setTimout(int ms) {
+        struct timeval tv;
+        tv.tv_sec = ms / 1000;
+        tv.tv_usec = (ms % 1000) * 1000;
+        setsockopt(connectionFD, SOL_SOCKET, SO_RCVTIMEO, (const char *) &tv, sizeof tv);
+        setsockopt(connectionFD, SOL_SOCKET, SO_SNDTIMEO, (const char *) &tv, sizeof tv);
+    }
 
 public:
     std::optional<std::pair<Header, std::string>> receiveMsg();
@@ -199,7 +214,7 @@ bool Connection<Req, Res>::sendMessage(Message msg) {
 }
 
 template<typename Req, typename Res>
-Connection<Req, Res>::Connection(Connection &other) : args(other.args) {
+Connection<Req, Res>::Connection(const Connection &other) : args(other.args) {
     currConnState = ConnectionState::NOT_INITIALIZED;
     struct addrinfo hints, *servinfo, *p;
     int rv;
@@ -237,6 +252,8 @@ Connection<Req, Res>::Connection(Connection &other) : args(other.args) {
     freeaddrinfo(servinfo);
 }
 
+template<typename Req, typename Res>
+Connection<Req, Res>::Connection(Connection<Req, Res> &&other)  noexcept = default;
 
 template<typename Req, typename Res>
 bool Connection<Req, Res>::sendRequest(Req request) {
@@ -250,7 +267,7 @@ std::optional<std::pair<Header, Res>> Connection<Req, Res>::receiveResponse() {
         return {};
     } else {
         auto [header, response] = msg.value();
-        Response resp;
+        Res resp;
         resp.ParseFromString(response);
         return {{header, resp}};
     }

@@ -14,11 +14,10 @@
 #include "../common/MessageComunication.h"
 #include "../common/utils.h"
 #include "ClientConnection.h"
-#include "Connection.h"
 #include "proto/message.pb.h"
 #include <openssl/sha.h>
 #include <sys/inotify.h>
-#define PORT 8989
+#define PORT 9988
 #define EVENT_SIZE  (sizeof(struct inotify_event))
 #define BUF_INOTIFY_LEN (1024 * (EVENT_SIZE + 16))
 

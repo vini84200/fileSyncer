@@ -3,8 +3,10 @@
 //
 
 #include "AdminListener.h"
+#include "AdminRequestHandler.h"
 
 RequestHandler<AdminMsg> *AdminListener::createRequestHandler(int socket) {
+    return new AdminRequestHandler(socket, server);
 }
 
 std::string AdminListener::getListenerName() {

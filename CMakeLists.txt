@@ -6,10 +6,10 @@ project(fileSyncerCommon)
 project(fileSyncerServer)
 project(fileSyncerClient)
 
-add_library(fileSyncerCommon STATIC src/common/MessageComunication.cpp
+add_library(fileSyncerCommon STATIC
         src/common/utils.cpp
         src/common/RwLock.h
-        src/client/ClientConnection.cpp)
+)
 
 # FetchContent_Declare(Protobuf GIT_REPOSITORY
 # https://github.com/protocolbuffers/protobuf.git GIT_TAG        v3.21.12
@@ -25,13 +25,12 @@ include_directories(${Protobuf_INCLUDE_DIRS})
 # DEPENDS ${PROTOC} ${PROTO_DIR}/message.proto )
 
 add_executable(
-        fileSyncerServer src/server/main.cpp ${PROTO_SRCS} ${PROTO_HDRS}
+        fileSyncerServer
+        src/server/main.cpp ${PROTO_SRCS} ${PROTO_HDRS}
         src/server/service/ServerRequestHandler.cpp
-        src/server/interfaces/RequestHandler.cpp
         src/server/Server.cpp
         src/server/ServerState.cpp
         src/server/transactions/Transaction.cpp
-        src/server/interfaces/Listener.cpp
         src/server/admin/AdminListener.cpp
         src/server/admin/AdminRequestHandler.cpp
         src/server/transactions/TransactionListener.cpp
@@ -40,12 +39,13 @@ add_executable(
         src/server/service/ServiceRequestHandler.h
         src/server/service/ServiceListener.cpp
         src/server/service/ServiceListener.h
-        src/server/TransactionManager.cpp
-        src/server/TransactionManager.h
+        src/server/transactions/TransactionManager.cpp
         src/server/transactions/CreateUserTransaction.cpp
         src/server/transactions/CreateSessionTransaction.cpp
         src/server/transactions/TransactionRequestHandler.cpp
         src/server/transactions/TransactionRequestHandler.h
+        src/server/Replica.cpp
+        src/server/Replica.h
 
 )
 target_link_libraries(fileSyncerServer fileSyncerCommon proto protobuf
@@ -59,7 +59,9 @@ target_link_libraries(
         )
 
 add_executable(
-        fileSyncerClient src/client/mainClient.cpp src/client/Connection.cpp
+        fileSyncerClient
+        src/client/mainClient.cpp
+        src/client/ClientConnection.cpp
         ${PROTO_SRCS} ${PROTO_HDRS})
 target_link_libraries(
         fileSyncerClient
@@ -83,3 +85,24 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(xxhash_cpp)
 
 target_link_libraries(fileSyncerCommon xxhash_cpp)
+
+FetchContent_Declare(Catch2                              # name of the content
+        GIT_REPOSITORY https://github.com/catchorg/Catch2.git  # the repository
+        GIT_TAG        v2.13.7                                 # the tag
+)
+
+# make available
+FetchContent_MakeAvailable(Catch2)
+
+# testing binary
+add_executable(cpp_test test/client.cpp)
+target_link_libraries(cpp_test PRIVATE Catch2::Catch2 fileSyncerCommon proto protobuf ${Protobuf_LIBRARIES})
+
+# enable testing functionality
+enable_testing()
+
+# define tests
+add_test(
+        NAME catch_test
+        COMMAND $<TARGET_FILE:cpp_test> --success
+)

@@ -6,11 +6,13 @@
 #define FILESYNCERCLIENT_SERVER_H
 
 #include "../common/RwLock.h"
+#include "Replica.h"
 #include "ServerState.h"
-#include "TransactionManager.h"
 #include "service/ServiceListener.h"
+#include "transactions/TransactionManager.h"
 
 class AdminListener;
+class TransactionListener;
 
 class Server {
 public:
@@ -24,7 +26,11 @@ public:
 
     TransactionManager &getTransactionManager();
 
-    std::vector<int> &getActiveServers();
+    std::vector<Replica *> getActiveServers();
+    bool hasCoordinator();
+    void setCoordinator(int id);
+    Replica& getCoordinator();
+    void startElection();
 private:
     SharedData<ServerState> state;
     bool isCoordinator;
@@ -34,22 +40,23 @@ private:
     int server_id{};
     int server_port{};
     int server_admin_port{};
+    int server_transaction_port{};
     std::string server_host;
-    std::vector<std::tuple<int, std::string>> servers;
-    std::vector<int> active_servers;
+    std::map<int, Replica> servers;
 
     TransactionManager transaction_manager;
     AdminListener *admin_listener;
     ServiceListener *service_listener;
+    TransactionListener *transaction_listener;
 
     void startCoordinator();
-    void startElection();
 
     void startAdminListener();
     unsigned int warmup_time = 15;
     int coordinator_id       = -1;
     bool checkCoordinatorAlive();
     void startTransactionListener();
+
 
 };
 

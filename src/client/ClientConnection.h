@@ -5,7 +5,9 @@
 #ifndef FILESYNCERCLIENT_CLIENTCONNECTION_H
 #define FILESYNCERCLIENT_CLIENTCONNECTION_H
 
-#include "Connection.h"
+
+#include "../common/Connection.h"
+#include "proto/message.pb.h"
 
 class ClientConnection : public Connection<Request, Response> {
 

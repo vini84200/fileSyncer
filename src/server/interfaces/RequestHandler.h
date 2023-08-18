@@ -5,7 +5,7 @@
 #ifndef FILESYNCERCLIENT_REQUESTHANDLER_H
 #define FILESYNCERCLIENT_REQUESTHANDLER_H
 
-#include "../../client/Connection.h"
+#include "../../common/Connection.h"
 #include "../../common/MessageComunication.h"
 #include "proto/message.pb.h"
 #include <csignal>
@@ -17,23 +17,24 @@ template <typename T>
 class RequestHandler {
 protected:
     int client_fd;
+    bool is_running = true;
     pthread_t thread_;
 
     pthread_mutex_t mutex_ = PTHREAD_MUTEX_INITIALIZER;
 
     bool receiveBytes(char *bytes, size_t bytes_to_receive);
-
+    std::optional<std::pair<Header, std::string>> receiveMsg();
 public:
     RequestHandler(int socket);
-    std::optional<std::pair<Header, std::string>> receiveMsg();
+    RequestHandler(sockaddr_storage client_addr, int client_fd);
+
     virtual void handleRequest() = 0;
+    std::optional<std::pair<Header, T>> receiveRequest();
+
     bool sendMessage(Message msg);
     pthread_t start();
-    RequestHandler(sockaddr_storage client_addr, int client_fd);
     bool endConnection();
-    std::optional<std::pair<Header, T>> receiveRequest();
     void stop();
-    bool is_running = true;
 };
 
 template<typename T>

@@ -78,6 +78,7 @@ enum TransactionOuterType {
   TRANSACTION = 0;
   TRANSACTION_VOTE = 1;
   TRANSACTION_RESULT = 2;
+  TRANSACTION_OK_ACK = 3;
 }
 
 message TransactionOuterMsg {
