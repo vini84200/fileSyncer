@@ -7,7 +7,8 @@ project(fileSyncerClient)
 
 add_library(fileSyncerCommon STATIC src/common/MessageComunication.cpp
         src/common/utils.cpp
-        src/common/RwLock.h)
+        src/common/RwLock.h
+        src/client/ClientConnection.cpp)
 include_directories(${OPENSSL_INCLUDE_DIR})
 
 # FetchContent_Declare(Protobuf GIT_REPOSITORY

@@ -11,12 +11,13 @@
 #include <fstream>
 #include <iostream>
 
-#include <sys/inotify.h>
 #include "../common/MessageComunication.h"
+#include "../common/utils.h"
+#include "ClientConnection.h"
 #include "Connection.h"
 #include "proto/message.pb.h"
-#include "../common/utils.h"
 #include <openssl/sha.h>
+#include <sys/inotify.h>
 #define PORT 8989
 #define EVENT_SIZE  (sizeof(struct inotify_event))
 #define BUF_INOTIFY_LEN (1024 * (EVENT_SIZE + 16))
@@ -27,7 +28,7 @@ std::string syncDirPath;
 char *username;
 char *password;
 
-Connection *mainConn;
+ClientConnection *mainConn;
 
 int notExit;
 bool muteUpdate = false;
@@ -87,7 +88,7 @@ void verifica_modificacao(int *file_descriptor, char buffer_inotify[BUF_INOTIFY_
                     continue;
                 }
                 std::cout << "Arquivo modificado: " << event->name << std::endl;
-                Connection conn(*mainConn);
+                ClientConnection conn(*mainConn);
                 Request request;
                 request.set_type(RequestType::FILE_UPDATE);
                 const std::string filename = event->name;
@@ -365,7 +366,7 @@ void *thread_updates(void *) {
     Request r;
     r.set_type(RequestType::SUBSCRIBE);
     conn.sendRequest(r);
-    while (conn.getConnectionState() == Connection::ConnectionState::CONNECTED && notExit) {
+    while (conn.getConnectionState() == ConnectionState::CONNECTED && notExit) {
         auto response = conn.receiveResponse();
         if (response.has_value()) {
             auto [h, res] = response.value();
@@ -428,10 +429,10 @@ int main(int argc, char *argv[]) {
     // COMUNICATION
 
     ConnectionArgs cArgs = ConnectionArgs(argv[2], PORT, username, password);
-    mainConn = new Connection(cArgs);
-    Connection &conn = *mainConn;
+    mainConn = new ClientConnection(cArgs);
+    ClientConnection &conn = *mainConn;
 
-    if (conn.getConnectionState() != Connection::ConnectionState::CONNECTED) {
+    if (conn.getConnectionState() != ConnectionState::CONNECTED) {
         perror("Error connecting to server");
         exit(1);
     }

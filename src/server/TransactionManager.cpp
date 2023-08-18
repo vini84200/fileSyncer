@@ -160,7 +160,7 @@ bool TransactionManager::receiveNewTransaction(
 
 void TransactionManager::sendResult(bool result, int tid) {
     for (auto s: server->getActiveServers()) {
-        Connection conn(s, s->getTransactionPort());
+
     }
 }
 
