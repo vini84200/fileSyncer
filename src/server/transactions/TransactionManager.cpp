@@ -85,7 +85,29 @@ void TransactionManager::initTransaction() {
 }
 
 void TransactionManager::executeTransactionInNodes() {
-    // TODO: Send the transaction to the other servers
+    std::vector<Replica *> servers = server->getActiveServers();
+    std::vector<Connection<TransactionOuterMsg, TransactionOuterMsg>> connections;
+
+    TransactionOuterMsg msg;
+    activeTransaction_->serialize(msg.mutable_transaction());
+    for (auto &replica : servers) {
+        Connection c = Connection<TransactionOuterMsg, TransactionOuterMsg>(replica->getTransactionConnectionArgs());
+        msg.set_type(TransactionOuterType::TRANSACTION);
+        c.sendRequest(msg);
+        connections.emplace_back(std::move(c));
+    }
+    // Get the acks
+    for (auto &c: connections) {
+        c.setTimout(1000);// 1 second timeout
+        auto resp = c.receiveResponse();
+        if (!resp.has_value()) {
+            printf("WARN: Could not receive ack from server for "
+                   "transaction %d\n",
+                   activeTransaction_->getTid());
+            // TODO: Remove from the active list
+            // TODO: This server cannot be part of the voting
+        }
+    }
 }
 
 void TransactionManager::commitTransaction() {
@@ -106,7 +128,7 @@ void TransactionManager::setIsCoordinator(bool b) {
 void TransactionManager::startVoting() {
     // Get the list of servers that will vote
     auto servers = server->getActiveServers();
-    votingTotal = servers.size();
+    votingTotal = servers.size() + 1; // +1 for the coordinator
     votes = 0;
 }
 
@@ -121,6 +143,7 @@ bool TransactionManager::waitEndVoting() {
     }
     bool result = votes == votingTotal;
     pthread_mutex_unlock(&votes_mutex);
+    printf("Voting ended with result %s (%d/%d)\n", result ? "COMMIT" : "ROLLBACK", votes, votingTotal);
     return result;
 }
 
@@ -130,23 +153,24 @@ void TransactionManager::addVote(bool vote, int tid) {
                "the active one\n");
         return;
     }
+    printf("Adding vote %s for transaction %d\n", vote ? "COMMIT" : "ROLLBACK", tid);
     if (vote) {
         pthread_mutex_lock(&votes_mutex);
         votes++;
-        pthread_cond_signal(&votes_cond);
         pthread_mutex_unlock(&votes_mutex);
+        pthread_cond_signal(&votes_cond);
     } else {
         // The vote was negative, so we can stop the voting
         pthread_mutex_lock(&votes_mutex);
         votes = -1;
-        pthread_cond_signal(&votes_cond);
         pthread_mutex_unlock(&votes_mutex);
+        pthread_cond_signal(&votes_cond);
     }
 }
 
 void TransactionManager::receiveResult(bool res, int32_t t_id) {
     if (t_id != activeTransaction_->getTid()) {
-        printf("WARN: Tried to add a vote for a transaction that is not "
+        printf("WARN: Tried to receive a result for a transaction that is not "
                "the active one\n");
         return;
     }
@@ -166,12 +190,12 @@ bool TransactionManager::receiveNewTransaction(
         return false;
     }
 
-    activeTransaction_ = &transaction;
-    isTransactionActive_ = true;
     // Get id for the transaction
     int tid = transaction.getTid();
 
     WriteLock lock(state_);
+    activeTransaction_ = &transaction;
+    isTransactionActive_ = true;
     activeTransaction_->setState(&lock);
     initTransaction();
 

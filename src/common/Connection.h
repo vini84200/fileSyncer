@@ -60,6 +60,7 @@ public:
         tv.tv_sec = ms / 1000;
         tv.tv_usec = (ms % 1000) * 1000;
         setsockopt(connectionFD, SOL_SOCKET, SO_RCVTIMEO, (const char *) &tv, sizeof tv);
+        setsockopt(connectionFD, SOL_SOCKET, SO_SNDTIMEO, (const char *) &tv, sizeof tv);
     }
 
 public:

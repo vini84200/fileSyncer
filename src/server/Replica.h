@@ -17,8 +17,8 @@ private:
     int adminPort;
     int servicePort;
     int transactionPort;
-    bool isCoordinator;
-    bool isAlive;
+    bool isCoordinator = false;
+    bool isAlive = true;
     int lastTid;
     long lastHeartbeat;
 

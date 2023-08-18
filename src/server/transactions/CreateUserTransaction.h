@@ -18,7 +18,7 @@ public:
                           const std::string username,
                           const std::string password);
     CreateUserTransaction() = default;
-    TransactionMsg *serialize() override;
+    void *serialize(TransactionMsg *out) override;
     void deserialize(const TransactionMsg *msg) override;
     std::string getTransactionName() override;
     std::string toString() override;

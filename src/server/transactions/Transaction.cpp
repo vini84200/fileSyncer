@@ -3,8 +3,6 @@
 //
 
 #include "Transaction.h"
-#include "../../common/RwLock.h"
-#include "CreateUserTransaction.h"
 
 Transaction::Transaction() {
     hasRollback    = false;

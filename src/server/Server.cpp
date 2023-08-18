@@ -63,8 +63,6 @@ void Server::loadConfig() {
             warmup_time = std::stoi(value);
         } else if (key == "other_servers_ip:") {
             while (std::getline(config_file, line)) {
-                // Remove the dash
-                line = line.substr(2);
                 // Ignore comments
                 if (line[0] == '#') { continue; }
                 // Ignore empty lines
@@ -73,6 +71,8 @@ void Server::loadConfig() {
                 if (line.find('#') != std::string::npos) {
                     line = line.substr(0, line.find('#'));
                 }
+                // Remove the dash
+                line = line.substr(2);
                 std::istringstream iss(line);
                 int id;
                 std::string ip;
@@ -119,11 +119,9 @@ void Server::startAdminListener() {
 }
 
 void Server::startElection() {
-    // TODO: Implement
-    // Temporary solution
-    coordinator_id = server_id;
-    isCoordinator  = true;
-    startCoordinator();
+    // TODO: Implement the election algorithm
+    // Temporary solution: The server with ID 1 is the coordinator
+    setCoordinator(1);
 }
 
 void Server::startCoordinator() {
@@ -199,4 +197,14 @@ std::vector<Replica*> Server::getActiveServers() {
 
 Replica &Server::getCoordinator() {
     return servers.at(coordinator_id);
+}
+
+void Server::setCoordinator(int id) {
+    coordinator_id = id;
+    isCoordinator  = id == server_id;
+    printf("Coordinator set to %d\n", id);
+    if (isCoordinator) {
+        startCoordinator();
+    }
+
 }

@@ -13,4 +13,15 @@ void AdminRequestHandler::handleRequest() {
     }
     auto h = msg.value().first;
     auto r = msg.value().second;
+
+    if (r.type() == AdminMsgType::HEARTBEAT) {
+        handleHeartbeat();
+    }
+}
+
+void AdminRequestHandler::handleHeartbeat() {
+    AdminMsg *msg = new AdminMsg();
+    msg->set_type(AdminMsgType::HEARTBEAT);
+    sendMessage(*msg);
+    endConnection();
 }

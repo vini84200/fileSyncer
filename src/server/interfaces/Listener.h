@@ -115,7 +115,7 @@ void Listener<T>::execute() {
 
         auto *handler = createRequestHandler(client_socket_fd);
         handler->start();
-        handlers.push_back(handler);
+        handlers.emplace_back(handler);
     }
     close(socket_fd);
 }

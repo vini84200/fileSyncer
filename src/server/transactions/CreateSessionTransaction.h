@@ -14,7 +14,7 @@ protected:
     void execute() override;
 
 public:
-    TransactionMsg *serialize() override;
+    void *serialize(TransactionMsg *out) override;
     void deserialize(const TransactionMsg *msg) override;
     std::string getTransactionName() override;
     std::string toString() override;

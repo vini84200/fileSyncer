@@ -28,16 +28,36 @@ void TransactionRequestHandler::handleRequest() {
             t = new CreateSessionTransaction();
         }
         t->deserialize(&tMsg.transaction());
+        printf("Received transaction (id: %d)\n", t->getTid());
+        TransactionOuterMsg msg;
+        msg.set_type(TransactionOuterType::TRANSACTION_OK_ACK);
+        sendMessage(msg);
+        endConnection();
         server->getTransactionManager().receiveNewTransaction(*t);
+        printf("Message sent\n");
     }
     if (tMsg.type() == TransactionOuterType::TRANSACTION_VOTE) {
         // This is the coordinator
+        printf("Received vote (id: %d): %s\n", tMsg.vote().transaction_id(), tMsg.vote().vote() == TransactionVote::COMMIT ? "COMMIT" : "ROLLBACK");
         server->getTransactionManager().addVote(tMsg.vote().vote() == TransactionVote::COMMIT, tMsg.vote().transaction_id());
+        TransactionOuterMsg msg;
+        msg.set_type(TransactionOuterType::TRANSACTION_OK_ACK);
+        sendMessage(msg);
+        endConnection();
+        printf("Message sent\n");
+        return;
 
     }
     if (tMsg.type() == TransactionOuterType::TRANSACTION_RESULT) {
         // This is the coordinator
+        printf("Received result (id: %d): %s\n", tMsg.result().transaction_id(), tMsg.result().result() == TransactionVote::COMMIT ? "COMMIT" : "ROLLBACK");
         server->getTransactionManager().receiveResult(tMsg.result().result() == TransactionVote::COMMIT, tMsg.result().transaction_id());
+        TransactionOuterMsg msg;
+        msg.set_type(TransactionOuterType::TRANSACTION_OK_ACK);
+        sendMessage(msg);
+        endConnection();
+        printf("Message sent\n");
+        return;
     }
 
 

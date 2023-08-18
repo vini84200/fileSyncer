@@ -7,9 +7,15 @@
 
 #include "../interfaces/RequestHandler.h"
 
+class Server;
+
 class AdminRequestHandler : public RequestHandler<AdminMsg> {
+private:
+    Server *server;
 public:
+    AdminRequestHandler(int socket, Server *server) : RequestHandler(socket), server(server) {}
     void handleRequest() override;
+    void handleHeartbeat();
 };
 
 
