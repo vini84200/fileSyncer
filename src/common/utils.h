@@ -5,6 +5,9 @@
 #ifndef FILESYNCERCLIENT_UTILS_H
 #define FILESYNCERCLIENT_UTILS_H
 
+#include "cstring"
+#include <string>
+
 typedef unsigned char byte;
 typedef std::basic_string<byte> byte_string;
 typedef unsigned long FileDigest;

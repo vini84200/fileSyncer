@@ -83,3 +83,24 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(xxhash_cpp)
 
 target_link_libraries(fileSyncerCommon xxhash_cpp)
+
+FetchContent_Declare(Catch2                              # name of the content
+        GIT_REPOSITORY https://github.com/catchorg/Catch2.git  # the repository
+        GIT_TAG        v2.13.7                                 # the tag
+)
+
+# make available
+FetchContent_MakeAvailable(Catch2)
+
+# testing binary
+add_executable(cpp_test test/client.cpp)
+target_link_libraries(cpp_test PRIVATE Catch2::Catch2 fileSyncerCommon proto protobuf ${Protobuf_LIBRARIES})
+
+# enable testing functionality
+enable_testing()
+
+# define tests
+add_test(
+        NAME catch_test
+        COMMAND $<TARGET_FILE:cpp_test> --success
+)
