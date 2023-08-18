@@ -76,7 +76,7 @@ include_directories(${Protobuf_INCLUDE_DIRS})
 
 FetchContent_Declare(
         xxhash_cpp
-        GIT_REPOSITORY git@github.com:RedSpah/xxhash_cpp.git
+        GIT_REPOSITORY https://github.com/RedSpah/xxhash_cpp.git
         GIT_TAG        0.8.1
 )
 
