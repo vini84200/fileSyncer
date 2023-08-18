@@ -28,7 +28,8 @@ TransactionMsg *CreateSessionTransaction::serialize() {
     return msg;
 }
 
-void CreateSessionTransaction::deserialize(TransactionMsg *msg) {
+void CreateSessionTransaction::deserialize(
+        const TransactionMsg *msg) {
     tid = msg->transaction_id();
     sessionID = msg->create_session().session_id();
     username = msg->create_session().username();

@@ -46,9 +46,10 @@ public:
     int setState(WriteLock<ServerState> *state);
     TransactionStatus getStatus();
     virtual TransactionMsg *serialize() = 0;
-    virtual void deserialize(TransactionMsg *msg) = 0;
+    virtual void deserialize(const TransactionMsg *msg) = 0;
     virtual std::string getTransactionName() = 0;
     virtual std::string toString() = 0;
+    int getTid();
 };
 
 

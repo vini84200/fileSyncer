@@ -10,7 +10,7 @@
 
 Server::Server()
         : state(ServerState()),
-            transaction_manager(false, state)
+            transaction_manager(false, this, state)
 {
     isCoordinator = false;
     ServerState initial_state = ServerState();
@@ -119,6 +119,22 @@ void Server::startCoordinator() {
 
     // Start the recovery process
 
+    // Check all the servers that are up
+    for (auto &server : servers) {
+        int id = std::get<0>(server);
+        // If the server is not the coordinator and is up
+        if (id != coordinator_id && id != server_id) {
+            // Send the heartbeat request
+            // If the server is down, remove it from the list
+            // If the server is up, add it to the list
+
+            // TODO: Implement the heartbeat request
+            if (true) {
+                active_servers.push_back(id);
+            }
+        }
+    }
+
     // Start the Service Listener
     service_listener = new ServiceListener(server_host, server_port, this);
     service_listener->start();
@@ -147,4 +163,8 @@ WriteLock<ServerState> Server::getWriteStateGuard() {
 
 TransactionManager &Server::getTransactionManager() {
     return transaction_manager;
+}
+
+std::vector<int> &Server::getActiveServers() {
+    return active_servers;
 }

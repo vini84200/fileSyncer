@@ -24,6 +24,7 @@ public:
 
     TransactionManager &getTransactionManager();
 
+    std::vector<int> &getActiveServers();
 private:
     SharedData<ServerState> state;
     bool isCoordinator;
@@ -35,6 +36,7 @@ private:
     int server_admin_port{};
     std::string server_host;
     std::vector<std::tuple<int, std::string>> servers;
+    std::vector<int> active_servers;
 
     TransactionManager transaction_manager;
     AdminListener *admin_listener;
@@ -48,6 +50,7 @@ private:
     int coordinator_id       = -1;
     bool checkCoordinatorAlive();
     void startTransactionListener();
+
 };
 
 

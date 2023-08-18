@@ -108,3 +108,7 @@ TransactionStatus Transaction::getStatus() {
     }
     return TransactionStatus::NOT_RUNNING;
 }
+
+int Transaction::getTid() {
+    return tid;
+}

@@ -36,7 +36,7 @@ TransactionMsg *CreateUserTransaction::serialize() {
     return msg;
 }
 
-void CreateUserTransaction::deserialize(TransactionMsg *msg) {
+void CreateUserTransaction::deserialize(const TransactionMsg *msg) {
     tid = msg->transaction_id();
     username = msg->create_user().username();
     password = msg->create_user().password();

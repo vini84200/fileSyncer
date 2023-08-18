@@ -42,6 +42,8 @@ add_executable(
         src/server/TransactionManager.h
         src/server/transactions/CreateUserTransaction.cpp
         src/server/transactions/CreateSessionTransaction.cpp
+        src/server/transactions/TransactionRequestHandler.cpp
+        src/server/transactions/TransactionRequestHandler.h
 
 )
 target_link_libraries(fileSyncerServer fileSyncerCommon proto protobuf
