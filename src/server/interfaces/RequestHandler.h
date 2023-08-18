@@ -5,7 +5,7 @@
 #ifndef FILESYNCERCLIENT_REQUESTHANDLER_H
 #define FILESYNCERCLIENT_REQUESTHANDLER_H
 
-#include "../../client/Connection.h"
+#include "../../common/Connection.h"
 #include "../../common/MessageComunication.h"
 #include "proto/message.pb.h"
 #include <csignal>

@@ -16,8 +16,9 @@ template <typename T>
 class Listener {
 public:
     Listener(std::string host, int port);
-    void start();
     void stop();
+
+    void start();
 
 private:
     static void *run(void *args);

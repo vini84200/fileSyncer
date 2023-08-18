@@ -1,7 +1,9 @@
 server_id: 1
 server_port: 8989
 server_admin_port: 8998
+server_transaction_port: 8999
 server_host: 0.0.0.0
+warmup_time: 5
+# Comments are allowed
 other_servers_ip:
-- 231.122.233.11
-- 231.122.233.14
+- 3 231.122.233.11 1002 1003 1004 # Id IP ServicePort AdminPort TransactionPort

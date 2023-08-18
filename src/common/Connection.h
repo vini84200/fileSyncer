@@ -27,6 +27,11 @@ struct ConnectionArgs {
             std::string username,
             std::string password
     ) : hostname(hostname), port(port), username(username), password(password) {};
+
+    ConnectionArgs(
+            std::string hostname,
+            int port
+    ) : hostname(hostname), port(port) {};
 };
 
 enum class ConnectionState {
@@ -47,6 +52,13 @@ public:
 
 
     ConnectionState getConnectionState();
+
+    void setTimout(int ms) {
+        struct timeval tv;
+        tv.tv_sec = ms / 1000;
+        tv.tv_usec = (ms % 1000) * 1000;
+        setsockopt(connectionFD, SOL_SOCKET, SO_RCVTIMEO, (const char *) &tv, sizeof tv);
+    }
 
 public:
     std::optional<std::pair<Header, std::string>> receiveMsg();
@@ -250,7 +262,7 @@ std::optional<std::pair<Header, Res>> Connection<Req, Res>::receiveResponse() {
         return {};
     } else {
         auto [header, response] = msg.value();
-        Response resp;
+        Res resp;
         resp.ParseFromString(response);
         return {{header, resp}};
     }

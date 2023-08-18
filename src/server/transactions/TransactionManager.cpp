@@ -3,8 +3,8 @@
 //
 
 #include "TransactionManager.h"
-#include "../common/RwLock.h"
-#include "../server/Server.h"
+#include "../../common/utils.h"
+#include "../Server.h"
 
 TransactionManager::TransactionManager(bool isCoordinator,
                                        Server *server,

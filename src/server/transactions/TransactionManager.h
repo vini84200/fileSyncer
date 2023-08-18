@@ -5,8 +5,8 @@
 #ifndef FILESYNCERCLIENT_TRANSACTIONMANAGER_H
 #define FILESYNCERCLIENT_TRANSACTIONMANAGER_H
 
-#include "../common/RwLock.h"
-#include "transactions/Transaction.h"
+#include "../../common/RwLock.h"
+#include "Transaction.h"
 
 class Server;
 class TransactionManager {
