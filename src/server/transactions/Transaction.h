@@ -5,11 +5,20 @@
 #ifndef FILESYNCERCLIENT_TRANSACTION_H
 #define FILESYNCERCLIENT_TRANSACTION_H
 
+#include "../../common/RwLock.h"
 #include "../ServerState.h"
+
+enum class TransactionStatus {
+    COMMITTED,
+    ROLLBACK,
+    PREPARED,
+    RUNNING,
+    NOT_RUNNING
+};
 
 class Transaction {
 private:
-    ServerState **resultStatePtr;
+    WriteLock<ServerState> *state_;
     ServerState *original_;
     ServerState *work_state_;
     bool hasRollback;
@@ -25,11 +34,22 @@ protected:
     void rollback();
     bool prepareCommit();
 
+    Transaction();
+    int tid;
+
 public:
-    explicit Transaction(ServerState **state);
     bool run();
     void forceRollback();
     bool commit();
+    bool isPrepared();
+    void setTid(int id);
+    int setState(WriteLock<ServerState> *state);
+    TransactionStatus getStatus();
+    virtual TransactionMsg *serialize() = 0;
+    virtual void deserialize(const TransactionMsg *msg) = 0;
+    virtual std::string getTransactionName() = 0;
+    virtual std::string toString() = 0;
+    int getTid();
 };
 
 

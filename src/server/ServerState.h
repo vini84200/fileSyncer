@@ -19,16 +19,21 @@ class ServerState {
              std::vector<std::tuple<int, ServerRequestHandler *>>>
             subscribed_users;
 
+    int last_tid = 0;
 
 public:
     void addSession(SessionId session_id, std::string username);
     void removeSession(SessionId session_id);
-    bool isSessionValid(SessionId session_id);
+    bool isSessionValid(SessionId session_id)const;
 
     int getNumberOfSessions();
-    std::string getUsernameFromSession(SessionId session_id);
-
     bool isValid();
+    [[nodiscard]] bool hasUser(const std::string &username) const;
+    int nextTid() const;
+    bool checkPassword(const std::string &username,
+                       const std::string &password) const;
+    void addUser(std::string username, std::string password);
+    std::string getUserFromSesssion(long session) const;
 };
 
 
