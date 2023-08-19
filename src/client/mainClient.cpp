@@ -263,7 +263,7 @@ int download(char *path) {
     Request request;
     request.set_type(RequestType::DOWNLOAD);
     request.set_filename(path);
-    Connection conn(*mainConn);
+    ClientConnection conn(*mainConn);
     conn.sendRequest(request);
     auto maybeResponse = conn.receiveResponse();
     if (!maybeResponse.has_value()) {
@@ -272,7 +272,7 @@ int download(char *path) {
     }
     auto [header, response] = maybeResponse.value();
     if (response.type() == ResponseType::ERROR) {
-        printf("\nErro ao baixar arquivo do servidor: ", response.error_msg().c_str());
+        printf("\nErro ao baixar arquivo do servidor: %s\n", response.error_msg().c_str());
         return CONTINUE;
     }
 

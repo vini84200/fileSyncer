@@ -66,6 +66,9 @@ public:
                                                     int tid) const;
     std::vector<const UserFile *>
     getUserFiles(std::string user) const;
+    bool hasFile(std::string username, std::string filename) const;
+    const std::string getFileHash(std::string user,
+                                   const std::string &filename) const;
 };
 
 

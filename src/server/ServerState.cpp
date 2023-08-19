@@ -154,7 +154,7 @@ std::string ServerState::getServersDir() {
 
 std::string ServerState::getFilePath(std::string username,
                                      std::string filename) {
-    return getUserDir(username) + filename;
+    return getUserDir(username)+ "/" + filename;
 }
 
 std::string ServerState::getUserDir(std::string user) {
@@ -193,4 +193,20 @@ std::vector<const UserFile*> ServerState::getUserFiles(std::string user) const {
         files.emplace_back(&file);
     }
     return files;
+}
+
+bool ServerState::hasFile(std::string username,
+                          std::string filename) const {
+    return user_files.count(username) != 0 &&
+             user_files.at(username).count(filename) != 0;
+}
+
+const std::string
+ServerState::getFileHash(std::string user,
+                         const std::string &filename) const {
+    return user_files.count(user) == 0
+                   ? ""
+                   : user_files.at(user).count(filename) == 0
+                             ? ""
+                             : user_files.at(user).at(filename).hash;
 }

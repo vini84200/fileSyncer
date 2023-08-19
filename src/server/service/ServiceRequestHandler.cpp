@@ -7,6 +7,7 @@
 #include "../transactions/CreateSessionTransaction.h"
 #include "../transactions/CreateUserTransaction.h"
 #include "../transactions/RemoveSessionTransaction.h"
+#include <fstream>
 
 ServiceRequestHandler::ServiceRequestHandler(int socket,
                                              Server *server)
@@ -217,6 +218,43 @@ void ServiceRequestHandler::handleSubscribe(Request request,
 void ServiceRequestHandler::handleDownload(Request request,
                                            std::string user,
                                            Header header) {
+    // Get the file
+    auto guard  = server->getReadStateGuard();
+    auto &state = guard.get();
+    if (!state.hasFile(user, request.filename())) {
+        Response r;
+        r.set_type(ERROR);
+        r.set_error_msg("File not found");
+        sendMessage(r);
+        endConnection();
+        return;
+    }
+    auto filepath = state.getFilePath(user, request.filename());
+
+    printf("Sending file %s\n", filepath.c_str());
+    std::fstream file(filepath, std::ios::binary | std::ios::in);
+    if (!file.is_open()) {
+        Response r;
+        r.set_type(ERROR);
+        r.set_error_msg("Error opening file");
+        sendMessage(r);
+        endConnection();
+        return;
+    }
+
+    // Send the file
+    Response r;
+    r.set_type(ResponseType::FILE_DATA_R);
+    r.mutable_file_data()->mutable_file()->set_filename(request.filename());
+    r.mutable_file_data()->mutable_file()->set_hash(state.getFileHash(user, request.filename()));
+    r.mutable_file_data()->mutable_data()->assign(std::istreambuf_iterator<char>(file),
+                                                  std::istreambuf_iterator<char>());
+
+    bool ok = sendMessage(r);
+    if (!ok) {
+        printf("Error sending file\n");
+    }
+    endConnection();
 }
 
 void ServiceRequestHandler::handleList(Request request,

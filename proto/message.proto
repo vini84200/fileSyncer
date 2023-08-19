@@ -65,7 +65,7 @@ message FileList {
 
 message FileData {
   required FileDescriptor file = 1;
-  required string data = 2;
+  required bytes data = 2;
 }
 
 message FileUpdate {
