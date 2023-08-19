@@ -15,6 +15,17 @@ public:
 
     void handleLogin(Request request, Header header);
     Server *server;
+    void handleSubscribe(Request request, std::string user,
+                         Header header);
+    void handleDownload(Request request, std::string user,
+                        Header header);
+    void handleList(Request request, std::string user, Header header);
+    void handleLogout(Request request, std::string user,
+                      Header header);
+    void handleFileUpdate(Request request, std::string user,
+                          Header header);
+    void handleUpload(Request request, std::string user,
+                      Header header);
 };
 
 

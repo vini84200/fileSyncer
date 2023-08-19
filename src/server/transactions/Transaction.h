@@ -7,6 +7,7 @@
 
 #include "../../common/RwLock.h"
 #include "../ServerState.h"
+#include "proto/message.pb.h"
 
 enum class TransactionStatus {
     COMMITTED,
@@ -31,7 +32,10 @@ protected:
 
     void begin();
     virtual void execute() = 0;
+
+    virtual void commitHook();
     void rollback();
+    virtual void rollbackHook();
     bool prepareCommit();
 
     Transaction();

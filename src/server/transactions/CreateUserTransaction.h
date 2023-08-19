@@ -10,8 +10,8 @@
 class CreateUserTransaction : public Transaction {
 protected:
     void execute() override;
-
-private:
+    void commitHook() override;
+    void rollbackHook() override;
 
 public:
     CreateUserTransaction(

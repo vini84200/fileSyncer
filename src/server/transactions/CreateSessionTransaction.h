@@ -6,6 +6,8 @@
 #define FILESYNCERCLIENT_CREATESESSIONTRANSACTION_H
 
 #include "Transaction.h"
+#include "proto/message.pb.h"
+
 class CreateSessionTransaction : public Transaction {
 public:
     CreateSessionTransaction(int sessionID, std::string username);
@@ -22,7 +24,6 @@ public:
 protected:
     int sessionID;
     std::string username;
-    int getTid();
 };
 
 

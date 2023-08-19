@@ -17,6 +17,8 @@ void AdminRequestHandler::handleRequest() {
     if (r.type() == AdminMsgType::HEARTBEAT) {
         handleHeartbeat();
     }
+
+    // Eleição aqui
 }
 
 void AdminRequestHandler::handleHeartbeat() {

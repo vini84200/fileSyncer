@@ -47,6 +47,8 @@ int upload(char *path);
 
 int deleteFile(char *path);
 
+void sendLogout();
+
 void *get_in_addr(struct sockaddr *sa) {
     if (sa->sa_family == AF_INET) {
         return &(((struct sockaddr_in *) sa)->sin_addr);
@@ -99,8 +101,7 @@ void verifica_modificacao(int *file_descriptor, char buffer_inotify[BUF_INOTIFY_
                     std::cerr << "Erro ao abrir o arquivo " << filename << std::endl;
                     return;
                 }
-                request.mutable_file_update()->mutable_data()->assign(std::istreambuf_iterator<char>(file),
-                                                                       std::istreambuf_iterator<char>());
+                // TODO: Ler o arquivo e enviar para o servidor
                 // Calcula o hash do arquivo
                 FileDigest hash = getFileDigest(syncDirPath + "/" + filename);
 
@@ -155,6 +156,7 @@ int terminal_Interaction(char *command, char *file_path) {
     }
 
     if (strcmp(command, "exit\0") == 0) {
+        sendLogout();
         return EXIT_SUCCESS;
     }
 
@@ -178,6 +180,27 @@ int terminal_Interaction(char *command, char *file_path) {
     return CONTINUE;
 }
 
+void sendLogout() {
+    ClientConnection conn(*mainConn);
+    Request request;
+    request.set_type(RequestType::LOGOUT);
+    conn.sendRequest(request);
+    auto maybeResponse = conn.receiveResponse();
+    if (!maybeResponse.has_value()) {
+        printf("\nErro ao receber resposta do servidor.");
+        return;
+    }
+    auto [header, response] = maybeResponse.value();
+    if (response.type() == ResponseType::ERROR) {
+        printf("\nErro ao fazer logout: ", response.error_msg().c_str());
+        return;
+    }
+    if (response.type() == ResponseType::LOGIN_OK) {
+        printf("\nLogout realizado com sucesso.");
+        return;
+    }
+}
+
 int deleteFile(char *path) {
     Request request;
     request.set_type(RequestType::FILE_UPDATE);
@@ -185,7 +208,6 @@ int deleteFile(char *path) {
     request.mutable_file_update()->set_filename(filename);
     request.mutable_file_update()->set_deleted(true);
     request.mutable_file_update()->set_hash("");
-    request.mutable_file_update()->mutable_data()->clear();
     Connection conn(*mainConn);
     conn.sendRequest(request);
     auto maybeResponse = conn.receiveResponse();
@@ -217,8 +239,7 @@ int upload(char *path) {
         std::cerr << "Erro ao abrir o arquivo " << filename << std::endl;
         return CONTINUE;
     }
-    request.mutable_file_update()->mutable_data()->assign(std::istreambuf_iterator<char>(file),
-                                                          std::istreambuf_iterator<char>());
+    // TODO: Ler o arquivo e enviar para o servidor
     request.mutable_file_update()->set_hash(digest_to_string(getFileDigest(filename)));
     Connection conn(*mainConn);
     conn.sendRequest(request);
@@ -242,7 +263,7 @@ int download(char *path) {
     Request request;
     request.set_type(RequestType::DOWNLOAD);
     request.set_filename(path);
-    Connection conn(*mainConn);
+    ClientConnection conn(*mainConn);
     conn.sendRequest(request);
     auto maybeResponse = conn.receiveResponse();
     if (!maybeResponse.has_value()) {
@@ -251,18 +272,18 @@ int download(char *path) {
     }
     auto [header, response] = maybeResponse.value();
     if (response.type() == ResponseType::ERROR) {
-        printf("\nErro ao baixar arquivo do servidor: ", response.error_msg().c_str());
+        printf("\nErro ao baixar arquivo do servidor: %s\n", response.error_msg().c_str());
         return CONTINUE;
     }
 
-    if (response.type() == ResponseType::DATA ) {
+    if (response.type() == ResponseType::FILE_DATA_R) {
         std::fstream file;
         file.open(path, std::ios::out | std::ios::binary | std::ios::trunc);
         if (!file.is_open()) {
             printf("\nErro ao abrir o arquivo %s", path);
             return CONTINUE;
         }
-        file << response.file_update().data();
+        file << response.file_data().data();
         file.close();
         printf("\nArquivo %s baixado com sucesso.", path);
         return CONTINUE;
@@ -293,7 +314,7 @@ int ping() {
 }
 
 int listServer() {
-    Connection conn (*mainConn);
+    ClientConnection conn (*mainConn);
     Request request;
     request.set_type(RequestType::LIST);
     conn.sendRequest(request);
@@ -362,7 +383,7 @@ void *thread_monitoramento(void *arg) {
 }
 
 void *thread_updates(void *) {
-    Connection conn(*mainConn);
+    ClientConnection conn(*mainConn);
     Request r;
     r.set_type(RequestType::SUBSCRIBE);
     conn.sendRequest(r);
@@ -387,7 +408,7 @@ void *thread_updates(void *) {
                     }
                     std::ofstream file(path,
                                        std::ios::binary | std::ios::out | std::ios::trunc);
-                    file << res.file_update().data();
+                    file << res.file_data().data();
                 }
                 muteUpdate = false;
             } else {
