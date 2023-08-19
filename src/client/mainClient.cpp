@@ -362,7 +362,7 @@ void *thread_monitoramento(void *arg) {
 }
 
 void *thread_updates(void *) {
-    Connection conn(*mainConn);
+    ClientConnection conn(*mainConn);
     Request r;
     r.set_type(RequestType::SUBSCRIBE);
     conn.sendRequest(r);
@@ -431,6 +431,7 @@ int main(int argc, char *argv[]) {
 
     ConnectionArgs cArgs = ConnectionArgs(argv[2], PORT, username, password);
     mainConn = new ClientConnection(cArgs);
+    printf("Main conn session: %d\n", mainConn->getSessionId());
     ClientConnection &conn = *mainConn;
 
     if (conn.getConnectionState() != ConnectionState::CONNECTED) {

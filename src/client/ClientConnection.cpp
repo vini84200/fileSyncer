@@ -5,7 +5,7 @@
 #include "ClientConnection.h"
 
 int ClientConnection::doLogin(std::string username, std::string password) {
-    sesstionId = -1;
+    sessionId = -1;
     if (currConnState != ConnectionState::CONNECTED) {
         return -1;
     }
@@ -33,7 +33,9 @@ int ClientConnection::doLogin(std::string username, std::string password) {
 
         if (resp.type() == LOGIN_OK) {
             // Extract token
-            sesstionId = resp.session_id();
+            printf("Login ok\n");
+            printf("Session id: %d\n", resp.session_id());
+            sessionId = resp.session_id();
             return 0;
         } else {
             return -1;
@@ -44,5 +46,9 @@ int ClientConnection::doLogin(std::string username, std::string password) {
 }
 
 bool ClientConnection::isLogged() {
-    return sesstionId != -1;
+    return sessionId != -1;
+}
+
+int ClientConnection::getSessionId() {
+    return sessionId;
 }

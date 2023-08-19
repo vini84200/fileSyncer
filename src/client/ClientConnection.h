@@ -19,15 +19,20 @@ public:
             perror("Login failed");
             currConnState = ConnectionState::CONNECTION_FAILURE;
         }
+        if (getSessionId() == -1) {
+            printf("Login failed\n");
+            currConnState = ConnectionState::CONNECTION_FAILURE;
+        }
     }
     int doLogin(std::string username, std::string password);
 
     ClientConnection(ClientConnection &other) : Connection<Request, Response>(other) {
-        this->sesstionId = other.sesstionId;
+        this->sessionId = other.sessionId;
     }
 
     bool isLogged();
-    long int sesstionId = 0;
+    int getSessionId() override;
+    int sessionId = 0;
 };
 
 

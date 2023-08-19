@@ -10,6 +10,10 @@ void CreateSessionTransaction::execute() {
         // Session already exists
         rollback();
     }
+    if (!state.hasUser(username)) {
+        // User does not exist
+        rollback();
+    }
     state.addSession(sessionID, username);
 }
 

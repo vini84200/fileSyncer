@@ -29,7 +29,7 @@ bool ServerState::checkPassword(const std::string &username,
 }
 
 bool ServerState::isSessionValid(SessionId session_id) const {
-    return logged_user_sessions.find(session_id) != logged_user_sessions.end();
+    return logged_user_sessions.count(session_id) != 0;
 }
 
 void ServerState::addUser(std::string username,

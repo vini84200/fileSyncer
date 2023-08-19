@@ -33,6 +33,12 @@ void ServiceRequestHandler::handleRequest() {
     if (r.type() == LOGIN) {
         handleLogin(r, h);
         return;
+    } else if (r.type() == PING) {
+        Response response;
+        response.set_type(PONG);
+        sendMessage(response);
+        endConnection();
+        return;
     }
 
     {
@@ -40,11 +46,13 @@ void ServiceRequestHandler::handleRequest() {
         std::string user;
         {
             auto read_guard = server->getReadStateGuard();
+            printf("Session id: %ld\n", h.session_id);
             // Get the user
             auto &state = read_guard.get();
             if (!state.isSessionValid(h.session_id)) {
                 Response r;
                 r.set_type(ERROR);
+                printf("Invalid session\n");
                 r.set_error_msg("Invalid session");
                 sendMessage(r);
                 endConnection();
@@ -54,6 +62,27 @@ void ServiceRequestHandler::handleRequest() {
         }
 
         // Run the handler
+        if (r.type() == SUBSCRIBE) {
+            handleSubscribe(r, user, h);
+        } else if (r.type() == DOWNLOAD) {
+            handleDownload(r, user, h);
+        } else if (r.type() == LIST) {
+            handleList(r, user, h);
+        } else if (r.type() == LOGOUT) {
+            handleLogout(r, user, h);
+        } else if (r.type() == FILE_UPDATE) {
+            handleFileUpdate(r, user, h);
+        } else if (r.type() == UPLOAD) {
+            handleUpload(r, user, h);
+        } else {
+            Response r;
+            r.set_type(ERROR);
+            r.set_error_msg("Unknown request type");
+            printf("Unknown request type\n");
+            sendMessage(r);
+            endConnection();
+            return;
+        }
 
     }
 
@@ -134,4 +163,37 @@ void ServiceRequestHandler::handleLogin(Request request,
     r.set_type(LOGIN_OK);
     r.set_session_id(session_id);
     sendMessage(r);
+}
+
+void ServiceRequestHandler::handleSubscribe(Request request,
+                                            std::string user,
+                                            Header header) {
+    printf("Handling subscribe\n");
+    // This is a subscribe request
+
+}
+
+void ServiceRequestHandler::handleDownload(Request request,
+                                           std::string user,
+                                           Header header) {
+}
+
+void ServiceRequestHandler::handleList(Request request,
+                                       std::string user,
+                                       Header header) {
+}
+
+void ServiceRequestHandler::handleLogout(Request request,
+                                         std::string user,
+                                         Header header) {
+}
+
+void ServiceRequestHandler::handleFileUpdate(Request request,
+                                             std::string user,
+                                             Header header) {
+}
+
+void ServiceRequestHandler::handleUpload(Request request,
+                                         std::string user,
+                                         Header header) {
 }
