@@ -10,6 +10,7 @@ Transaction::Transaction() {
     hasRollback    = false;
     is_committed_  = false;
     has_began_     = false;
+    is_prepared_   = false;
 }
 
 void Transaction::begin() {
@@ -69,6 +70,7 @@ void Transaction::forceRollback() {
 
 void Transaction::rollback() {
     if (has_began_) {
+        if (hasRollback) { return;}
         hasRollback     = true;
         // Remove the tid~ file
         std::string tid_dir = ServerState::getTidPath();

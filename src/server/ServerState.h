@@ -12,7 +12,14 @@
 
 typedef int SessionId;
 
-typedef std::map<std::string, std::string> UserFileList;
+struct UserFile {
+    std::string filename;
+    std::string hash;
+    int last_tid;
+    int size;
+};
+
+typedef std::map<std::string, UserFile> UserFileList;
 
 class ServerState {
 public:
@@ -48,12 +55,17 @@ public:
 
     static std::string serverDir;
     static std::string getServersDir();
-    static std::string getFilePath(std::string username, std::string filename);
+    static std::string getFilePath(std::string username,
+                                   std::string filename);
     static std::string getUserDir(std::string user);
     static std::string getTidPath();
 
 
     void init();
+    std::vector<const UserFile *> getUserFilesSince(std::string user,
+                                                    int tid) const;
+    std::vector<const UserFile *>
+    getUserFiles(std::string user) const;
 };
 
 

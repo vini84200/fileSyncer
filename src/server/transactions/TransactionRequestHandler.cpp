@@ -3,10 +3,11 @@
 //
 
 #include "TransactionRequestHandler.h"
+#include "../Server.h"
 #include "CreateSessionTransaction.h"
 #include "CreateUserTransaction.h"
+#include "RemoveSessionTransaction.h"
 #include "Transaction.h"
-#include "../Server.h"
 
 void TransactionRequestHandler::handleRequest() {
     auto msg = receiveRequest();
@@ -26,6 +27,11 @@ void TransactionRequestHandler::handleRequest() {
             t = new CreateUserTransaction();
         } else if (tMsg.transaction().type() == TransactionType::CREATE_SESSION) {
             t = new CreateSessionTransaction();
+        } else if (tMsg.transaction().type() == TransactionType::REMOVE_SESSION) {
+            t = new RemoveSessionTransaction();
+        } else {
+            printf("Invalid transaction type received\n");
+            return;
         }
         t->deserialize(&tMsg.transaction());
         printf("Received transaction (id: %d)\n", t->getTid());

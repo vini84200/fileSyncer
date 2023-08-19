@@ -141,7 +141,6 @@ Connection<Req, Res>::Connection(ConnectionArgs args) : args(args) {
 template<typename Req, typename Res>
 Connection<Req, Res>::~Connection() {
     if (currConnState == ConnectionState::CONNECTED) {
-        printf("Closing connection %d\n", connectionFD);
         close(connectionFD);
     }
 }

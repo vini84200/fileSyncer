@@ -66,14 +66,23 @@ void ServerState::init() {
                 printf("Found file for user %s: %s (%s)\n",
                        username.c_str(), filename.c_str(),
                        digest.c_str());
-                this->user_files[username].emplace(filename, digest);
+                // Get file size
+                std::ifstream file(file_path,
+                                   std::ios::binary | std::ios::ate);
+                int file_size = file.tellg();
+                file.close();
+
+                this->user_files[username].emplace(
+                        filename,
+                        UserFile{filename, digest, 0, file_size});
             }
             continue;
         }
         if (username == "tid") {
             std::ifstream tid_file(user_dir);
             tid_file >> this->last_tid;
-            printf("Found tid file, last tid is %d\n", this->last_tid);
+            printf("Found tid file, last tid is %d\n",
+                   this->last_tid);
             continue;
         }
     }
@@ -91,7 +100,7 @@ bool ServerState::hasUser(const std::string &username) const {
 
 bool ServerState::checkPassword(const std::string &username,
                                 const std::string &password) const {
-    return senhas.at(username) == password;
+    return senhas.count(username) != 0 && senhas.at(username) == password;
 }
 
 bool ServerState::isSessionValid(SessionId session_id) const {
@@ -99,7 +108,9 @@ bool ServerState::isSessionValid(SessionId session_id) const {
 }
 
 std::string ServerState::getUserFromSesssion(long session) const {
-    return logged_user_sessions.at(session);
+    return logged_user_sessions.count(session) == 0
+                   ? ""
+                   : logged_user_sessions.at(session);
 }
 
 int ServerState::getLastTid() const {
@@ -157,4 +168,29 @@ std::string ServerState::getTidPath() {
 ServerState::ServerState(std::string serverDir) {
     ServerState::serverDir = std::move(serverDir);
     init();
+}
+
+std::vector<const UserFile *>
+ServerState::getUserFilesSince(std::string user, int tid) const {
+    std::vector<const UserFile *> files;
+    if (user_files.count(user) == 0) {
+        return files;
+    }
+    for (auto &[filename, file]: user_files.at(user)) {
+        if (file.last_tid > tid) {
+            files.emplace_back(&file);
+        }
+    }
+    return files;
+}
+
+std::vector<const UserFile*> ServerState::getUserFiles(std::string user) const {
+    std::vector<const UserFile *> files;
+    if (user_files.count(user) == 0) {
+        return files;
+    }
+    for (auto &[filename, file]: user_files.at(user)) {
+        files.emplace_back(&file);
+    }
+    return files;
 }

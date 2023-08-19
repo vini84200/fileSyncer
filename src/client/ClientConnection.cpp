@@ -33,8 +33,6 @@ int ClientConnection::doLogin(std::string username, std::string password) {
 
         if (resp.type() == LOGIN_OK) {
             // Extract token
-            printf("Login ok\n");
-            printf("Session id: %d\n", resp.session_id());
             sessionId = resp.session_id();
             return 0;
         } else {

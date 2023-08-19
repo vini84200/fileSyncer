@@ -6,6 +6,7 @@
 #include "../Server.h"
 #include "../transactions/CreateSessionTransaction.h"
 #include "../transactions/CreateUserTransaction.h"
+#include "../transactions/RemoveSessionTransaction.h"
 
 ServiceRequestHandler::ServiceRequestHandler(int socket,
                                              Server *server)
@@ -184,10 +185,30 @@ void ServiceRequestHandler::handleSubscribe(Request request,
         guard.wait([tid, &guard]() {
                 return guard.get().getLastTid() > tid;
             });
+
+        // Check if session is still valid
+        if (!state.isSessionValid(header.session_id)) {
+            endConnection();
+            return;
+        }
         // Now we have an update
         // TODO: Get the list of files that changed
         // TODO: Send the list of files
         printf("Sending update <-------------------------------------\n");
+
+        for (auto &file: state.getUserFilesSince(user, tid)) {
+            printf("Sending file update %s for user %s\n",
+                   file->filename.c_str(), user.c_str());
+            Response r;
+            r.set_type(ResponseType::FILE_UPDATED);
+            r.mutable_file_update()->set_filename(file->filename);
+            r.mutable_file_update()->set_hash(file->hash);
+            bool ok = sendMessage(r);
+            if (!ok) {
+                printf("Error sending file update\n");
+                return;
+            }
+        }
 
         tid = state.getLastTid();
     }
@@ -201,11 +222,50 @@ void ServiceRequestHandler::handleDownload(Request request,
 void ServiceRequestHandler::handleList(Request request,
                                        std::string user,
                                        Header header) {
+    // Get the list of files
+    auto guard  = server->getReadStateGuard();
+    auto &state = guard.get();
+    auto files  = state.getUserFiles(user);
+
+    // Send the list of files
+    Response r;
+    r.set_type(ResponseType::FILE_LIST);
+    for (auto &file: files) {
+        auto fs = r.mutable_file_list()->add_files();
+        fs->set_filename(file->filename);
+        fs->set_hash(file->hash);
+    }
+    bool ok = sendMessage(r);
+    if (!ok) {
+        printf("Error sending file list\n");
+        return;
+    }
+    endConnection();
 }
 
 void ServiceRequestHandler::handleLogout(Request request,
                                          std::string user,
                                          Header header) {
+    // Create Transaction to remove session
+    auto transaction = new RemoveSessionTransaction(header.session_id);
+    bool ok = server->getTransactionManager().doTransaction(*transaction);
+    if (!ok) {
+        Response r;
+        r.set_type(ERROR);
+        r.set_error_msg("Error removing session");
+        sendMessage(r);
+        endConnection();
+        return;
+    }
+    else
+    {
+        Response r;
+        r.set_type(LOGIN_OK);
+        sendMessage(r);
+        endConnection();
+        return;
+    }
+
 }
 
 void ServiceRequestHandler::handleFileUpdate(Request request,
