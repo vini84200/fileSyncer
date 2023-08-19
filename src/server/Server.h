@@ -33,6 +33,9 @@ public:
     void startElection();
 private:
     SharedData<ServerState> state;
+
+
+
     bool isCoordinator;
     bool isRunning;
 
@@ -58,6 +61,7 @@ private:
     void startTransactionListener();
 
 
+    std::string getSyncerDirFromConfig();
 };
 
 

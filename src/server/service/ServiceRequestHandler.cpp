@@ -169,8 +169,28 @@ void ServiceRequestHandler::handleSubscribe(Request request,
                                             std::string user,
                                             Header header) {
     printf("Handling subscribe\n");
-    // This is a subscribe request
+    // Get current tid
+    int tid;
+    {
+        auto guard  = server->getReadStateGuard();
+        auto &state = guard.get();
+        tid = state.getLastTid();
+    }
 
+    // Wait for an update
+    while (true) {
+        auto guard  = server->getReadStateGuard();
+        auto &state = guard.get();
+        guard.wait([tid, &guard]() {
+                return guard.get().getLastTid() > tid;
+            });
+        // Now we have an update
+        // TODO: Get the list of files that changed
+        // TODO: Send the list of files
+        printf("Sending update <-------------------------------------\n");
+
+        tid = state.getLastTid();
+    }
 }
 
 void ServiceRequestHandler::handleDownload(Request request,

@@ -11,6 +11,10 @@ TransactionManager::TransactionManager(bool isCoordinator,
                                        SharedData<ServerState> &state)
 
     : isCoordinator_(isCoordinator), state_(state), server(server) {
+    {
+        ReadLock lock(state_);
+        lastTid = lock.get().getLastTid();
+    }
 }
 
 bool TransactionManager::doTransaction(Transaction &transaction) {
@@ -59,6 +63,7 @@ bool TransactionManager::doTransaction(Transaction &transaction) {
                "transaction %d\n",
                activeTransaction_->getTid());
         commitTransaction();
+        lock.notify();
         return true;
     } else {
         // Rollback

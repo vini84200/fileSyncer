@@ -3,6 +3,8 @@
 //
 
 #include "Transaction.h"
+#include <filesystem>
+#include <fstream>
 
 Transaction::Transaction() {
     hasRollback    = false;
@@ -13,12 +15,19 @@ Transaction::Transaction() {
 void Transaction::begin() {
     has_began_ = true;
     printf("Transaction %d began (%s)\n", tid, toString().c_str());
+    // Create tid~ file
+    std::string tid_dir = ServerState::getTidPath();
+    {
+        std::ofstream tid_file(tid_dir + "~");
+        tid_file << tid;
+    }
 }
 
 bool Transaction::run() {
     if (has_began_) { throw "Transaction already began"; }
     begin();
     try {
+        work_state_->setLastTid(tid);
         execute();
     } catch (...) {
         rollback();
@@ -32,6 +41,12 @@ bool Transaction::commit() {
         if (!is_prepared_) { throw "Transaction not prepared"; }
         is_committed_ = true;
         // Set the result
+        // Switch the tid file to the new one
+        std::string tid_dir = ServerState::getTidPath();
+        std::filesystem::remove(tid_dir);
+        std::filesystem::rename(tid_dir + "~", tid_dir);
+
+        commitHook();
         state_->set(*work_state_);
         printf("Transaction %d committed (%s)\n", tid, toString().c_str());
         // Delete the original state
@@ -55,6 +70,11 @@ void Transaction::forceRollback() {
 void Transaction::rollback() {
     if (has_began_) {
         hasRollback     = true;
+        // Remove the tid~ file
+        std::string tid_dir = ServerState::getTidPath();
+        std::filesystem::remove(tid_dir + "~");
+
+        rollbackHook();
         printf("Transaction %d rolled back (%s)\n", tid, toString().c_str());
         // The original state is the one that is valid
         // Delete the work state
@@ -109,4 +129,10 @@ TransactionStatus Transaction::getStatus() {
 
 int Transaction::getTid() {
     return tid;
+}
+
+void Transaction::commitHook() {
+}
+
+void Transaction::rollbackHook() {
 }

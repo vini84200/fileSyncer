@@ -10,12 +10,35 @@
 #include <sstream>
 
 Server::Server()
-    : state(ServerState()), transaction_manager(false, this, state) {
+    : state(ServerState(getSyncerDirFromConfig())), transaction_manager(false, this, state) {
     isCoordinator             = false;
-    ServerState initial_state = ServerState();
-
-
     loadConfig();
+}
+
+std::string Server::getSyncerDirFromConfig () {
+
+    std::ifstream config_file;
+    config_file.open("config.txt");
+    if (!config_file.is_open()) {
+        printf("ERROR: Could not open config file\n");
+        exit(1);
+    }
+
+    std::string line;
+    while (std::getline(config_file, line)) {
+        // Ignore comments
+        if (line[0] == '#') { continue; }
+
+        std::string key, value;
+        std::istringstream iss(line);
+        iss >> key >> value;
+        if (key == "syncer_dir:") {
+            return value;
+        }
+    }
+
+    return ".syncer/";
+
 }
 
 void Server::loadConfig() {
@@ -36,6 +59,7 @@ void Server::loadConfig() {
     server_transaction_port: 8999
     server_host: 0.0.0.0
     warmup_time: 5
+    syncer_dir: .syncer/
     Comments are allowed
     other_servers_ip:
     - 3 231.122.233.11 1002 1003 1004 # Id IP ServicePort AdminPort TransactionPort
@@ -61,6 +85,8 @@ void Server::loadConfig() {
             server_host = value;
         } else if (key == "warmup_time:") {
             warmup_time = std::stoi(value);
+        } else if (key == "syncer_dir:") {
+            ServerState::serverDir = value;
         } else if (key == "other_servers_ip:") {
             while (std::getline(config_file, line)) {
                 // Ignore comments
