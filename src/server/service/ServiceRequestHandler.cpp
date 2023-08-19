@@ -111,8 +111,8 @@ void ServiceRequestHandler::handleLogin(Request request,
     // Create session id
     int session_id;
     {
-        auto write_guard = server->getReadStateGuard();
-        auto &state = write_guard.get();
+        auto guard  = server->getReadStateGuard();
+        auto &state = guard.get();
         while (state.isSessionValid(session_id = rand()));
     }
 

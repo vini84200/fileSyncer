@@ -50,17 +50,24 @@ public:
     Connection(const Connection &other); // copy constructor
     // move constructor
     Connection(Connection &&other) noexcept;
+
     ~Connection();
 
 
     ConnectionState getConnectionState();
 
     void setTimout(int ms) {
+        /*
         struct timeval tv;
         tv.tv_sec = ms / 1000;
         tv.tv_usec = (ms % 1000) * 1000;
         setsockopt(connectionFD, SOL_SOCKET, SO_RCVTIMEO, (const char *) &tv, sizeof tv);
         setsockopt(connectionFD, SOL_SOCKET, SO_SNDTIMEO, (const char *) &tv, sizeof tv);
+            */
+    }
+
+    int getSocket() {
+        return connectionFD;
     }
 
 public:
@@ -134,6 +141,7 @@ Connection<Req, Res>::Connection(ConnectionArgs args) : args(args) {
 template<typename Req, typename Res>
 Connection<Req, Res>::~Connection() {
     if (currConnState == ConnectionState::CONNECTED) {
+        printf("Closing connection %d\n", connectionFD);
         close(connectionFD);
     }
 }
@@ -148,11 +156,13 @@ std::optional<std::pair<Header, std::string>> Connection<Req, Res>::receiveMsg()
     std::array<char, Header::getHeaderSize()> header_buff{};
     bool ok = receiveBytes(header_buff.data(), Header::getHeaderSize());
     if (!ok) {
+        printf("Error receiving header\n");
         return {};
     }
 
     Header h;
     if (h.loadFromBuffer(header_buff.data()) == -1) {
+        printf("Error loading header\n");
         return {};
     }
 
@@ -160,6 +170,7 @@ std::optional<std::pair<Header, std::string>> Connection<Req, Res>::receiveMsg()
     msg_buff.assign(h.msg_size, 0);
 
     if (!receiveBytes(msg_buff.data(), h.msg_size)) {
+        printf("Error receiving message\n");
         return {};
     }
 
@@ -175,6 +186,7 @@ bool Connection<Req, Res>::receiveBytes(char *bytes, size_t bytes_to_receive) {
         now = recv(connectionFD, bytes + received, bytes_to_receive, 0);
         if (now == CONNECTION_WAS_CLOSED) {
             currConnState = ConnectionState::CONNECTION_CLOSED;
+            printf("Connection was closed\n");
             return false;
         }
         if (now == SEND_ERROR) {

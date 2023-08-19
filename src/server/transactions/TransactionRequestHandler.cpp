@@ -31,8 +31,12 @@ void TransactionRequestHandler::handleRequest() {
         printf("Received transaction (id: %d)\n", t->getTid());
         TransactionOuterMsg msg;
         msg.set_type(TransactionOuterType::TRANSACTION_OK_ACK);
-        sendMessage(msg);
-        endConnection();
+        if(!sendMessage(msg)) {
+            printf("Error sending ACK message to client\n");
+            return;
+        } else {
+            printf("ACK message sent\n");
+        }
         server->getTransactionManager().receiveNewTransaction(*t);
         printf("Message sent\n");
     }
@@ -43,7 +47,6 @@ void TransactionRequestHandler::handleRequest() {
         TransactionOuterMsg msg;
         msg.set_type(TransactionOuterType::TRANSACTION_OK_ACK);
         sendMessage(msg);
-        endConnection();
         printf("Message sent\n");
         return;
 
@@ -55,7 +58,6 @@ void TransactionRequestHandler::handleRequest() {
         TransactionOuterMsg msg;
         msg.set_type(TransactionOuterType::TRANSACTION_OK_ACK);
         sendMessage(msg);
-        endConnection();
         printf("Message sent\n");
         return;
     }
