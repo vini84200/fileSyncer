@@ -210,3 +210,33 @@ ServerState::getFileHash(std::string user,
                              ? ""
                              : user_files.at(user).at(filename).hash;
 }
+
+void ServerState::removeFile(std::string user, std::string filename) {
+    if (user_files.count(user) == 0) {
+        return;
+    }
+    if (user_files.at(user).count(filename) == 0) {
+        return;
+    }
+    user_files.at(user).erase(filename);
+}
+
+void ServerState::updateFile(std::string user, std::string filename,
+                             UserFile file) {
+    if (user_files.count(user) == 0) {
+        return;
+    }
+    if (user_files.at(user).count(filename) == 0) {
+        return;
+    }
+    user_files.at(user).at(filename) = std::move(file);
+
+}
+
+void ServerState::addFile(std::string user, std::string filename,
+                          UserFile file) {
+    if (user_files.count(user) == 0) {
+        user_files.emplace(user, UserFileList());
+    }
+    user_files.at(user).emplace(filename, std::move(file));
+}

@@ -229,19 +229,25 @@ int deleteFile(char *path) {
 
 int upload(char *path) {
     Request request;
-    request.set_type(RequestType::FILE_UPDATE);
+    request.set_type(RequestType::UPLOAD);
     const std::string filename = path;
-    request.mutable_file_update()->set_filename(filename);
-    request.mutable_file_update()->set_deleted(false);
+
+    // Calcula o hash do arquivo
+    FileDigest hash = getFileDigest(filename);
+
+
     std::fstream file;
     file.open(filename, std::ios::in | std::ios::binary);
     if (!file.is_open()) {
         std::cerr << "Erro ao abrir o arquivo " << filename << std::endl;
         return CONTINUE;
     }
-    // TODO: Ler o arquivo e enviar para o servidor
-    request.mutable_file_update()->set_hash(digest_to_string(getFileDigest(filename)));
-    Connection conn(*mainConn);
+    request.mutable_file_data_update()->set_data(std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()));
+    request.mutable_file_data_update()->mutable_file_update()->set_filename(filename);
+    request.mutable_file_data_update()->mutable_file_update()->set_deleted(false);
+    request.mutable_file_data_update()->mutable_file_update()->set_hash(digest_to_string(hash));
+
+    ClientConnection conn(*mainConn);
     conn.sendRequest(request);
     auto maybeResponse = conn.receiveResponse();
     if (!maybeResponse.has_value()) {

@@ -4,7 +4,7 @@
 
 #include "RemoveSessionTransaction.h"
 
-void *RemoveSessionTransaction::serialize(TransactionMsg *out) {
+void RemoveSessionTransaction::serialize(TransactionMsg *out) {
     out->set_type(TransactionType::REMOVE_SESSION);
     out->set_transaction_id(tid);
     out->mutable_remove_session()->set_session_id(sessionID);

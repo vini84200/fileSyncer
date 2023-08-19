@@ -6,6 +6,7 @@
 #include "../Server.h"
 #include "../transactions/CreateSessionTransaction.h"
 #include "../transactions/CreateUserTransaction.h"
+#include "../transactions/FileChangeTransaction.h"
 #include "../transactions/RemoveSessionTransaction.h"
 #include <fstream>
 
@@ -204,6 +205,7 @@ void ServiceRequestHandler::handleSubscribe(Request request,
             r.set_type(ResponseType::FILE_UPDATED);
             r.mutable_file_update()->set_filename(file->filename);
             r.mutable_file_update()->set_hash(file->hash);
+            r.mutable_file_update()->set_deleted(file->deleted);
             bool ok = sendMessage(r);
             if (!ok) {
                 printf("Error sending file update\n");
@@ -314,4 +316,30 @@ void ServiceRequestHandler::handleFileUpdate(Request request,
 void ServiceRequestHandler::handleUpload(Request request,
                                          std::string user,
                                          Header header) {
+    byte_string data =
+            (std::basic_string<unsigned char> &) request
+                    .file_data_update()
+                    .data();
+    // Create a transaction to update the file
+    auto transaction = new FileChangeTransaction(user,
+                                                 request.file_data_update().file_update().filename(),
+                                                 false,
+                                                    &data);
+    bool ok = server->getTransactionManager().doTransaction(*transaction);
+    if (!ok) {
+        Response r;
+        r.set_type(ERROR);
+        r.set_error_msg("Error updating file");
+        sendMessage(r);
+        endConnection();
+        return;
+    }
+    else
+    {
+        Response r;
+        r.set_type(FILE_UPDATED);
+        sendMessage(r);
+        endConnection();
+        return;
+    }
 }
