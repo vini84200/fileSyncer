@@ -16,6 +16,7 @@ public:
     AdminRequestHandler(int socket, Server *server) : RequestHandler(socket), server(server) {}
     void handleRequest() override;
     void handleHeartbeat();
+    void handleElection(int senderId);
 };
 
 

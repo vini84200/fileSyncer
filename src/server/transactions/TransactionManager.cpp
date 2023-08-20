@@ -97,7 +97,6 @@ void TransactionManager::sendVote(bool vote, int tid) {
         printf("WARN: Could not receive ack from coordinator for "
                "vote of transaction %d\n",
                tid);
-        server->startElection();
     } else {
         auto header = resp.value().first;
         auto msg    = resp.value().second;

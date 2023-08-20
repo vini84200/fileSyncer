@@ -45,8 +45,10 @@ add_executable(
         src/server/transactions/TransactionRequestHandler.cpp
         src/server/Replica.cpp
         src/server/transactions/RemoveSessionTransaction.cpp
+        src/server/Election.cpp
         src/server/transactions/FileChangeTransaction.cpp
         src/server/transactions/FileChangeTransaction.h
+
 
 )
 target_link_libraries(fileSyncerServer fileSyncerCommon proto protobuf
