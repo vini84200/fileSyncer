@@ -15,9 +15,11 @@
 #include "../common/utils.h"
 #include "ClientConnection.h"
 #include "proto/message.pb.h"
+#include "ClientListener.h"
 #include <openssl/sha.h>
 #include <sys/inotify.h>
-#define PORT 9988
+#define PORT 8989
+#define DAEMON_PORT 666
 #define EVENT_SIZE  (sizeof(struct inotify_event))
 #define BUF_INOTIFY_LEN (1024 * (EVENT_SIZE + 16))
 
@@ -46,6 +48,10 @@ int download(char *path);
 int upload(char *path);
 
 int deleteFile(char *path);
+
+int showHostIp();
+
+int changeIP();
 
 void *get_in_addr(struct sockaddr *sa) {
     if (sa->sa_family == AF_INET) {
@@ -172,6 +178,10 @@ int terminal_Interaction(char *command, char *file_path) {
 
     if (strcmp(command, "ping\0") == 0) {
         return ping();
+    }
+
+    if (strcmp(command, "show_host_ip\0") == 0){
+        return showHostIp();
     }
 
     printf("\nErro! Comando não encontrado.");
@@ -317,8 +327,6 @@ int listServer() {
         printf("\n");
         return CONTINUE;
     }
-
-
 }
 
 int listClient() {
@@ -338,6 +346,10 @@ int getSyncDir() {
     return CONTINUE;
 }
 
+int showHostIp() {
+    printf("IP: %s, port: %d\n", mainConn->hostname.c_str(), mainConn->port);
+    return CONTINUE;
+}
 
 void *thread_monitoramento(void *arg) {
     char buffer_inotify[BUF_INOTIFY_LEN];
@@ -402,7 +414,7 @@ void *thread_updates(void *) {
     return nullptr;
 }
 
-void *thread_terminal(void *) {
+void *thread_front_end(void *) {
     char buffer[200], command[50], file_path[150];
     while (notExit) {
         printf("Digite o comando desejado ou 'help' para ver a lista de comandos\n > ");
@@ -413,6 +425,22 @@ void *thread_terminal(void *) {
     return nullptr;
 }
 
+int changeIP(){
+    printf("IP changed to...");
+    return 0;
+}
+
+
+void *thread_daemon_listener(void *) {
+    ClientListener daemonListener("", DAEMON_PORT);
+
+    printf("Daemon: ");
+    daemonListener.start();
+    
+    while(true){
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+}
 
 // https://beej.us/guide/bgnet/html/split-wide/client-server-background.html
 int main(int argc, char *argv[]) {
@@ -452,12 +480,13 @@ int main(int argc, char *argv[]) {
     ss >> syncDirPath;
     notExit = 1;
 
-    pthread_t thread_monitoramento_id, thread_updates_id, thread_terminal_id;
+    pthread_t thread_monitoramento_id, thread_updates_id, thread_front_end_id, thread_daemon_listener_id;
     pthread_create(&thread_monitoramento_id, NULL, thread_monitoramento, NULL);
     pthread_create(&thread_updates_id, NULL, thread_updates, NULL);
-    pthread_create(&thread_terminal_id, NULL, thread_terminal, NULL);
+    pthread_create(&thread_front_end_id, NULL, thread_front_end, NULL);
+    pthread_create(&thread_daemon_listener_id, NULL, thread_daemon_listener, NULL);
 
-    pthread_join(thread_terminal_id, NULL);
+    pthread_join(thread_front_end_id, NULL);
 
     delete mainConn;
 

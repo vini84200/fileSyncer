@@ -12,8 +12,13 @@
 class ClientConnection : public Connection<Request, Response> {
 
 public:
+    std::string hostname;
+    int port;
+
     ClientConnection(ConnectionArgs args) : Connection<Request, Response>(args) {
         int rv;
+        hostname = args.hostname;
+        port = args.port;
         rv = this->doLogin(args.username, args.password);
         if (rv == -1) {
             perror("Login failed");
