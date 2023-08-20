@@ -55,15 +55,15 @@ void FileChangeTransaction::execute() {
         file.write((char *) content->data(), content->size());
         file.close();
         auto f = UserFile{
-                filepath,
+                filename,
                 digest_to_string(getFileDigest(filepath + "~")),
                 getTid(), static_cast<int>(content->length())};
 
-        if (wo->hasFile(username, filepath)) {
+        if (wo->hasFile(username, filename)) {
 
-            wo->updateFile(username, filepath, f);
+            wo->updateFile(username, filename, f);
         } else {
-            wo->addFile(username, filepath, f);
+            wo->addFile(username, filename, f);
         }
     }
 }

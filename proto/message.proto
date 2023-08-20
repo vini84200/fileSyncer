@@ -37,6 +37,7 @@ enum ResponseType {
   PONG = 5;
   FILE_UPDATED = 6;
   FILE_DATA_R = 7;
+  SEND_FILE_DATA = 8;
 }
 
 message Response {
