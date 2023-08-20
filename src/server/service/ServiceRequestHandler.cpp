@@ -331,8 +331,9 @@ void ServiceRequestHandler::handleFileUpdate(Request request,
     if (deleted) {
         printf("File deleted\n");
         // Delete the file
+        byte_string empty = {0};
         auto transaction = new FileChangeTransaction(user, filename,
-                                                     true, nullptr);
+                                                     true, &empty);
         bool ok = server->getTransactionManager().doTransaction(
                 *transaction);
         if (!ok) {
