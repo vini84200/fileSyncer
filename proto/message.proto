@@ -151,4 +151,5 @@ enum AdminMsgType {
 
 message AdminMsg {
   required AdminMsgType type = 1;
+  optional int32 sender_id = 2;
 }

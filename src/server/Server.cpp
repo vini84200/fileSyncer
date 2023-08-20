@@ -10,12 +10,13 @@
 #include <sstream>
 
 Server::Server()
-    : state(ServerState(getSyncerDirFromConfig())), transaction_manager(false, this, state) {
-    isCoordinator             = false;
+    : state(ServerState(getSyncerDirFromConfig())),
+      transaction_manager(false, this, state) {
+    isCoordinator = false;
     loadConfig();
 }
 
-std::string Server::getSyncerDirFromConfig () {
+std::string Server::getSyncerDirFromConfig() {
 
     std::ifstream config_file;
     config_file.open("config.txt");
@@ -32,13 +33,10 @@ std::string Server::getSyncerDirFromConfig () {
         std::string key, value;
         std::istringstream iss(line);
         iss >> key >> value;
-        if (key == "syncer_dir:") {
-            return value;
-        }
+        if (key == "syncer_dir:") { return value; }
     }
 
     return ".syncer/";
-
 }
 
 void Server::loadConfig() {
@@ -106,9 +104,10 @@ void Server::loadConfig() {
                 int admin_port;
                 int transaction_port;
                 iss >> id >> ip >> service_port >> admin_port >>
-                    transaction_port;
-                servers.emplace(id, Replica(id, ip, admin_port, service_port,
-                                            transaction_port));
+                        transaction_port;
+                servers.emplace(id, Replica(id, ip, admin_port,
+                                            service_port,
+                                            transaction_port, this));
             }
         }
     }
@@ -132,10 +131,24 @@ void Server::start() {
         // Check if the coordinator is alive
         // If it is not, start the election
         printf("Coordinator found\n");
-        if (!checkCoordinatorAlive()) { startElection(); }
     }
 
-    while (isRunning) { sleep(2); }
+    while (isRunning) {
+        sleep(3);
+        // Check if the coordinator is alive
+        // If it is not, start the election
+        if (coordinator_id == -1) {
+            printf("No coordinator found\n Starting an election\n");
+            startElection();
+        } else if (isCoordinator) {
+            // Check all the servers that are up
+            for (auto &server: servers) {
+                server.second.checkAlive();
+            }
+        } else {
+            if (!checkCoordinatorAlive()) { startElection(); }
+        }
+    }
 }
 
 void Server::startAdminListener() {
@@ -145,8 +158,21 @@ void Server::startAdminListener() {
 }
 
 void Server::startElection() {
-    Election *newElection = new Election(server_id, getActiveServers());
-    newElection->startElection();
+    if (election != nullptr) {
+        printf("Election already started\n");
+        return;
+    }
+    election = new Election(this);
+    election->startElection();
+    // Check if there is a coordinator
+    if (coordinator_id == -1) {
+        printf("No coordinator found\n Starting an election\n");
+        startElection();
+    } else {
+        // Can delete the election
+        delete election;
+        election = nullptr;
+    }
 }
 
 void Server::startCoordinator() {
@@ -176,19 +202,33 @@ void Server::startCoordinator() {
     }
 
     // Start the Service Listener
+    if (service_listener != nullptr) {
+        printf("Service listener already started\n");
+        return;
+    }
     service_listener =
             new ServiceListener(server_host, server_port, this);
     service_listener->start();
 }
 
 bool Server::checkCoordinatorAlive() {
-    return false;// TODO: Implement
+    // Check if the coordinator is alive
+    // If it is not, start the election
+    if (coordinator_id == -1) {
+        printf("No coordinator found\n");
+        return false;
+    }
+    if (coordinator_id == server_id) { return true; }
+    if (!servers.at(coordinator_id).checkAliveBlocking()) {
+        printf("Coordinator is not alive\n");
+        return false;
+    }
+    return true;
 }
 
 void Server::startTransactionListener() {
-    transaction_listener =
-            new TransactionListener(server_host, server_transaction_port,
-                                    this);
+    transaction_listener = new TransactionListener(
+            server_host, server_transaction_port, this);
     transaction_listener->start();
 }
 
@@ -210,12 +250,10 @@ TransactionManager &Server::getTransactionManager() {
     return transaction_manager;
 }
 
-std::vector<Replica*> Server::getActiveServers() {
-    std::vector<Replica*> active_servers;
+std::vector<Replica *> Server::getActiveServers() {
+    std::vector<Replica *> active_servers;
     for (auto &[id, server]: servers) {
-        if (server.isAlive1()) {
-            active_servers.push_back(&server);
-        }
+        if (server.isAlive1()) { active_servers.push_back(&server); }
     }
     return active_servers;
 }
@@ -228,8 +266,29 @@ void Server::setCoordinator(int id) {
     coordinator_id = id;
     isCoordinator  = id == server_id;
     printf("Coordinator set to %d\n", id);
-    if (isCoordinator) {
-        startCoordinator();
-    }
+    this->transaction_manager.setIsCoordinator(isCoordinator);
+    if (!isCoordinator) { getReplica(id).setIsCoordinator(true); }
+    if (isCoordinator) { startCoordinator(); }
+}
 
+std::vector<Replica *> Server::getReplicas() {
+    std::vector<Replica *> replicas;
+    for (auto &[id, server]: servers) { replicas.push_back(&server); }
+    return replicas;
+}
+
+int Server::getId() {
+    return server_id;
+}
+
+bool Server::hasElection() {
+    return election != nullptr;
+}
+
+Replica &Server::getReplica(int i) {
+    return servers.at(i);
+}
+
+Election &Server::getElection() {
+    return *election;
 }

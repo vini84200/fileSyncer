@@ -3,9 +3,11 @@
 //
 
 #include "Replica.h"
+#include "Server.h"
 
 bool Replica::checkAliveBlocking() {
     Connection<AdminMsg, AdminMsg> connection(getAdminConnectionArgs());
+    if (!isAlive) return false;
     AdminMsg* hbReq  = new AdminMsg();
     hbReq->set_type(AdminMsgType::HEARTBEAT);
     connection.sendRequest(*hbReq);
@@ -17,10 +19,6 @@ bool Replica::checkAliveBlocking() {
         pthread_mutex_lock(&mutex);
         isAlive = false;
         pthread_mutex_unlock(&mutex);
-        if (isCoordinator) {
-            // TODO: Handle coordinator death, start a new election
-
-        }
         return false;
     }
     auto header = hbResp.value().first;

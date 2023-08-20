@@ -32,6 +32,18 @@ public:
     void setCoordinator(int id);
     Replica& getCoordinator();
     void startElection();
+    std::vector<Replica *> getReplicas();
+
+    int getId();
+
+    void startCoordinator();
+
+    bool hasElection();
+
+    Replica &getReplica(int i);
+
+    Election &getElection();
+
 private:
     SharedData<ServerState> state;
 
@@ -49,12 +61,10 @@ private:
     std::map<int, Replica> servers;
 
     TransactionManager transaction_manager;
-    AdminListener *admin_listener;
-    ServiceListener *service_listener;
-    TransactionListener *transaction_listener;
+    AdminListener *admin_listener = nullptr;
+    ServiceListener *service_listener = nullptr;
+    TransactionListener *transaction_listener = nullptr;
 
-
-    void startCoordinator();
 
     void startAdminListener();
     unsigned int warmup_time = 15;
@@ -64,6 +74,7 @@ private:
 
 
     std::string getSyncerDirFromConfig();
+    Election *election = nullptr;
 };
 
 
