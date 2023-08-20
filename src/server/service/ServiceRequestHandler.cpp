@@ -3,7 +3,6 @@
 //
 
 #include "ServiceRequestHandler.h"
-#include "../Server.h"
 #include "../transactions/CreateSessionTransaction.h"
 #include "../transactions/CreateUserTransaction.h"
 #include "../transactions/FileChangeTransaction.h"
@@ -140,11 +139,24 @@ void ServiceRequestHandler::handleLogin(Request request,
         return;
     }
 
+
+
     // Create session id
     int session_id;
     {
         auto guard  = server->getReadStateGuard();
         auto &state = guard.get();
+
+        // Only two sessions per user
+        if (state.getUserSessions(request.username()).size() >= 2) {
+            Response r;
+            r.set_type(ERROR);
+            r.set_error_msg("Too many sessions");
+            sendMessage(r);
+            endConnection();
+            return;
+        }
+
         while (state.isSessionValid(session_id = rand()));
     }
 

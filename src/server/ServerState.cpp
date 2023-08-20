@@ -240,3 +240,14 @@ void ServerState::addFile(std::string user, std::string filename,
     }
     user_files.at(user).emplace(filename, std::move(file));
 }
+
+std::vector<SessionId>
+ServerState::getUserSessions(const std::string &username) const {
+    std::vector<SessionId> sessions;
+    for (auto &[session, user]: logged_user_sessions) {
+        if (user == username) {
+            sessions.emplace_back(session);
+        }
+    }
+    return sessions;
+}

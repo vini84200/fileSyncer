@@ -75,6 +75,8 @@ public:
                     UserFile file);
     void addFile(std::string user, std::string filename,
                  UserFile file);
+    std::vector<SessionId>
+    getUserSessions(const std::string &username) const;
 };
 
 
