@@ -10,15 +10,15 @@
 class CreateUserTransaction : public Transaction {
 protected:
     void execute() override;
-
-private:
+    void commitHook() override;
+    void rollbackHook() override;
 
 public:
     CreateUserTransaction(
                           const std::string username,
                           const std::string password);
     CreateUserTransaction() = default;
-    void *serialize(TransactionMsg *out) override;
+    void serialize(TransactionMsg *out) override;
     void deserialize(const TransactionMsg *msg) override;
     std::string getTransactionName() override;
     std::string toString() override;

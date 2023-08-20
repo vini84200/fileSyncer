@@ -9,6 +9,7 @@
 #include <string>
 
 #define HEARTBEAT_TIMEOUT 1400
+class Server;
 
 class Replica {
 private:
@@ -22,10 +23,12 @@ private:
     int lastTid;
     long lastHeartbeat;
 
+    Server* server;
+
     pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 public:
-    Replica(int id, std::string host, int adminPort, int servicePort, int transactionPort)
-        : id(id), host(std::move(host)), adminPort(adminPort), servicePort(servicePort), transactionPort(transactionPort) {
+    Replica(int id, std::string host, int adminPort, int servicePort, int transactionPort, Server* server)
+        : id(id), host(std::move(host)), adminPort(adminPort), servicePort(servicePort), transactionPort(transactionPort), server(server){
         isCoordinator = false;
     }
 

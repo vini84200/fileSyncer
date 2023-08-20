@@ -3,10 +3,12 @@
 //
 
 #include "TransactionRequestHandler.h"
+#include "../Server.h"
 #include "CreateSessionTransaction.h"
 #include "CreateUserTransaction.h"
+#include "FileChangeTransaction.h"
+#include "RemoveSessionTransaction.h"
 #include "Transaction.h"
-#include "../Server.h"
 
 void TransactionRequestHandler::handleRequest() {
     auto msg = receiveRequest();
@@ -26,13 +28,24 @@ void TransactionRequestHandler::handleRequest() {
             t = new CreateUserTransaction();
         } else if (tMsg.transaction().type() == TransactionType::CREATE_SESSION) {
             t = new CreateSessionTransaction();
+        } else if (tMsg.transaction().type() == TransactionType::REMOVE_SESSION) {
+            t = new RemoveSessionTransaction();
+        } else if (tMsg.transaction().type() == TransactionType::FILE_CHANGE) {
+            t = new FileChangeTransaction();
+        } else {
+            printf("Invalid transaction type received\n");
+            return;
         }
         t->deserialize(&tMsg.transaction());
         printf("Received transaction (id: %d)\n", t->getTid());
         TransactionOuterMsg msg;
         msg.set_type(TransactionOuterType::TRANSACTION_OK_ACK);
-        sendMessage(msg);
-        endConnection();
+        if(!sendMessage(msg)) {
+            printf("Error sending ACK message to client\n");
+            return;
+        } else {
+            printf("ACK message sent\n");
+        }
         server->getTransactionManager().receiveNewTransaction(*t);
         printf("Message sent\n");
     }
@@ -43,7 +56,6 @@ void TransactionRequestHandler::handleRequest() {
         TransactionOuterMsg msg;
         msg.set_type(TransactionOuterType::TRANSACTION_OK_ACK);
         sendMessage(msg);
-        endConnection();
         printf("Message sent\n");
         return;
 
@@ -55,7 +67,6 @@ void TransactionRequestHandler::handleRequest() {
         TransactionOuterMsg msg;
         msg.set_type(TransactionOuterType::TRANSACTION_OK_ACK);
         sendMessage(msg);
-        endConnection();
         printf("Message sent\n");
         return;
     }

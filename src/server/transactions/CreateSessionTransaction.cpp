@@ -3,6 +3,7 @@
 //
 
 #include "CreateSessionTransaction.h"
+#include "proto/message.pb.h"
 
 void CreateSessionTransaction::execute() {
     ServerState& state = *getWorkState();
@@ -10,7 +11,12 @@ void CreateSessionTransaction::execute() {
         // Session already exists
         rollback();
     }
+    if (!state.hasUser(username)) {
+        // User does not exist
+        rollback();
+    }
     state.addSession(sessionID, username);
+    state.setUserLastTid(username, tid);
 }
 
 CreateSessionTransaction::CreateSessionTransaction(
@@ -19,11 +25,11 @@ CreateSessionTransaction::CreateSessionTransaction(
     this->username = std::move(username);
 }
 
-void *CreateSessionTransaction::serialize(TransactionMsg *msg) {
-    msg->set_transaction_id(getTid());
-    msg->set_type(TransactionType::CREATE_SESSION);
-    msg->mutable_create_session()->set_session_id(sessionID);
-    msg->mutable_create_session()->set_username(username);
+void CreateSessionTransaction::serialize(TransactionMsg *out) {
+    out->set_transaction_id(getTid());
+    out->set_type(TransactionType::CREATE_SESSION);
+    out->mutable_create_session()->set_session_id(sessionID);
+    out->mutable_create_session()->set_username(username);
 }
 
 void CreateSessionTransaction::deserialize(
@@ -31,10 +37,6 @@ void CreateSessionTransaction::deserialize(
     tid = msg->transaction_id();
     sessionID = msg->create_session().session_id();
     username = msg->create_session().username();
-}
-
-int CreateSessionTransaction::getTid() {
-    return tid;
 }
 
 std::string CreateSessionTransaction::getTransactionName() {

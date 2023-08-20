@@ -4,6 +4,8 @@
 
 #include "CreateUserTransaction.h"
 #include "Transaction.h"
+#include <filesystem>
+#include <fstream>
 
 void CreateUserTransaction::execute() {
     ServerState &state = *getWorkState();
@@ -16,6 +18,16 @@ void CreateUserTransaction::execute() {
         rollback();
     }
     state.addUser(this->username, this->password);
+    state.setUserLastTid(this->username, tid);
+    // Create the user directory
+    std::string userDir = state.getUserDir(this->username);
+    // Create the user directory as a temporary directory
+    std::filesystem::create_directory(userDir + "~");
+    // Create the user password file
+    {
+        std::ofstream passwordFile(userDir + "~/.password");
+        passwordFile << this->password;
+    }
 
 }
 
@@ -27,11 +39,11 @@ CreateUserTransaction::CreateUserTransaction(
     this->password = password;
 }
 
-void *CreateUserTransaction::serialize(TransactionMsg *msg) {
-    msg->set_transaction_id(tid);
-    msg->set_type(TransactionType::CREATE_USER);
-    msg->mutable_create_user()->set_username(username);
-    msg->mutable_create_user()->set_password(password);
+void CreateUserTransaction::serialize(TransactionMsg *out) {
+    out->set_transaction_id(tid);
+    out->set_type(TransactionType::CREATE_USER);
+    out->mutable_create_user()->set_username(username);
+    out->mutable_create_user()->set_password(password);
 }
 
 void CreateUserTransaction::deserialize(const TransactionMsg *msg) {
@@ -46,4 +58,16 @@ std::string CreateUserTransaction::getTransactionName() {
 
 std::string CreateUserTransaction::toString() {
     return "CreateUserTransaction: " + username + " ****";
+}
+
+void CreateUserTransaction::commitHook() {
+    // Rename the temporary directory to the actual directory
+    std::string userDir = getWorkState()->getUserDir(this->username);
+    std::filesystem::rename(userDir + "~", userDir);
+}
+
+void CreateUserTransaction::rollbackHook() {
+    // Delete the temporary directory
+    std::string userDir = getWorkState()->getUserDir(this->username);
+    std::filesystem::remove_all(userDir + "~");
 }

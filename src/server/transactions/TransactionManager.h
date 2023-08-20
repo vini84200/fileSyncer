@@ -63,13 +63,13 @@ private:
     int votingTotal;
     int votes;
     pthread_mutex_t votes_mutex = PTHREAD_MUTEX_INITIALIZER;
-    pthread_cond_t votes_cond;
+    pthread_cond_t votes_cond = PTHREAD_COND_INITIALIZER;
     void sendResult(bool result, int tid);
     bool waitResult();
     pthread_mutex_t result_mutex = PTHREAD_MUTEX_INITIALIZER;
     bool hasResult = false;
     bool result = false;
-    pthread_cond_t result_cond;
+    pthread_cond_t result_cond = PTHREAD_COND_INITIALIZER;
 };
 
 

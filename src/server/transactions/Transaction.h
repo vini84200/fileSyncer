@@ -7,6 +7,7 @@
 
 #include "../../common/RwLock.h"
 #include "../ServerState.h"
+#include "proto/message.pb.h"
 
 enum class TransactionStatus {
     COMMITTED,
@@ -31,7 +32,10 @@ protected:
 
     void begin();
     virtual void execute() = 0;
+
+    virtual void commitHook();
     void rollback();
+    virtual void rollbackHook();
     bool prepareCommit();
 
     Transaction();
@@ -45,7 +49,7 @@ public:
     void setTid(int id);
     int setState(WriteLock<ServerState> *state);
     TransactionStatus getStatus();
-    virtual void *serialize(TransactionMsg *out)        = 0;
+    virtual void serialize(TransactionMsg *out)        = 0;
     virtual void deserialize(const TransactionMsg *msg) = 0;
     virtual std::string getTransactionName() = 0;
     virtual std::string toString() = 0;

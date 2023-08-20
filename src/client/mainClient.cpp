@@ -49,6 +49,8 @@ int upload(char *path);
 
 int deleteFile(char *path);
 
+void sendLogout();
+
 int showHostIp();
 
 int changeIP();
@@ -87,9 +89,9 @@ void verifica_modificacao(int *file_descriptor, char buffer_inotify[BUF_INOTIFY_
     for (int i = 0; i < length;) {
         struct inotify_event *event = (struct inotify_event *) &buffer_inotify[i];
         if (event->len) {
-            if ((event->mask & IN_MODIFY) || (event->mask & IN_CLOSE_WRITE) ){
+            if ((event->mask & 0) || (event->mask & IN_CLOSE_WRITE) ){
                 if (muteUpdate) {
-                    printf("Arquivo atualizado, processo de sincronização em andamento\n");
+//                    printf("Arquivo atualizado, processo de sincronização em andamento\n");
                     continue;
                 }
                 std::cout << "Arquivo modificado: " << event->name << std::endl;
@@ -99,34 +101,54 @@ void verifica_modificacao(int *file_descriptor, char buffer_inotify[BUF_INOTIFY_
                 const std::string filename = event->name;
                 request.mutable_file_update()->set_filename(filename);
                 request.mutable_file_update()->set_deleted(false);
-                std::fstream file;
-                file.open(syncDirPath + "/" + filename, std::ios::in | std::ios::binary);
-                if (!file.is_open()) {
-                    std::cerr << "Erro ao abrir o arquivo " << filename << std::endl;
-                    return;
-                }
-                request.mutable_file_update()->mutable_data()->assign(std::istreambuf_iterator<char>(file),
-                                                                       std::istreambuf_iterator<char>());
-                // Calcula o hash do arquivo
-                FileDigest hash = getFileDigest(syncDirPath + "/" + filename);
-
-                request.mutable_file_update()->set_hash(digest_to_string(hash));
-
+                std::string newHash = digest_to_string(getFileDigest(syncDirPath + "/" + filename));
+                request.mutable_file_update()->set_hash(newHash);
+                // Send the hash to the server and wait for a response
                 conn.sendRequest(request);
                 auto maybeResponse = conn.receiveResponse();
                 if (!maybeResponse.has_value()) {
                     std::cerr << "Erro ao receber resposta do servidor" << std::endl;
                     return;
                 }
+
                 auto [header, response] = maybeResponse.value();
+
                 if (response.type() == ERROR) {
                     std::cerr << "Erro ao enviar arquivo para o servidor" << std::endl;
                     return;
                 }
+
                 if (response.type() == FILE_UPDATED) {
-                    std::cout << "Arquivo atualizado no servidor" << std::endl;
+                    std::cout << "Arquivo já atualizado no servidor" << std::endl;
+                    return;
                 }
 
+                if (response.type() == SEND_FILE_DATA) {
+                    // Send the file data
+                    std::fstream file;
+                    file.open(syncDirPath + "/" + filename, std::ios::in | std::ios::binary);
+                    Request fileDataRequest;
+                    fileDataRequest.set_type(RequestType::FILE_DATA);
+                    fileDataRequest.mutable_file_data_update()->mutable_data()->assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+                    fileDataRequest.mutable_file_data_update()->mutable_file_update()->set_filename(filename);
+                    fileDataRequest.mutable_file_data_update()->mutable_file_update()->set_deleted(false);
+                    fileDataRequest.mutable_file_data_update()->mutable_file_update()->set_hash(newHash);
+                    conn.sendRequest(fileDataRequest);
+
+                    auto maybeResponse = conn.receiveResponse();
+                    if (!maybeResponse.has_value()) {
+                        std::cerr << "Erro ao receber resposta do servidor" << std::endl;
+                        return;
+                    }
+                    auto [header, response] = maybeResponse.value();
+                    if (response.type() == ERROR) {
+                        std::cerr << "Erro ao enviar arquivo para o servidor" << std::endl;
+                        return;
+                    }
+                    if (response.type() == FILE_UPDATED) {
+                        std::cout << "Arquivo enviado ao servidor com sucesso" << std::endl;
+                    }
+                }
             } else if (event->mask & IN_DELETE) {
                 deleteFile((char *) event->name);
             } else {
@@ -161,6 +183,7 @@ int terminal_Interaction(char *command, char *file_path) {
     }
 
     if (strcmp(command, "exit\0") == 0) {
+        sendLogout();
         return EXIT_SUCCESS;
     }
 
@@ -188,6 +211,27 @@ int terminal_Interaction(char *command, char *file_path) {
     return CONTINUE;
 }
 
+void sendLogout() {
+    ClientConnection conn(*mainConn);
+    Request request;
+    request.set_type(RequestType::LOGOUT);
+    conn.sendRequest(request);
+    auto maybeResponse = conn.receiveResponse();
+    if (!maybeResponse.has_value()) {
+        printf("\nErro ao receber resposta do servidor.");
+        return;
+    }
+    auto [header, response] = maybeResponse.value();
+    if (response.type() == ResponseType::ERROR) {
+        printf("\nErro ao fazer logout: ", response.error_msg().c_str());
+        return;
+    }
+    if (response.type() == ResponseType::LOGIN_OK) {
+        printf("\nLogout realizado com sucesso.");
+        return;
+    }
+}
+
 int deleteFile(char *path) {
     Request request;
     request.set_type(RequestType::FILE_UPDATE);
@@ -195,8 +239,7 @@ int deleteFile(char *path) {
     request.mutable_file_update()->set_filename(filename);
     request.mutable_file_update()->set_deleted(true);
     request.mutable_file_update()->set_hash("");
-    request.mutable_file_update()->mutable_data()->clear();
-    Connection conn(*mainConn);
+    ClientConnection conn(*mainConn);
     conn.sendRequest(request);
     auto maybeResponse = conn.receiveResponse();
     if (!maybeResponse.has_value()) {
@@ -217,20 +260,25 @@ int deleteFile(char *path) {
 
 int upload(char *path) {
     Request request;
-    request.set_type(RequestType::FILE_UPDATE);
+    request.set_type(RequestType::UPLOAD);
     const std::string filename = path;
-    request.mutable_file_update()->set_filename(filename);
-    request.mutable_file_update()->set_deleted(false);
+
+    // Calcula o hash do arquivo
+    FileDigest hash = getFileDigest(filename);
+
+
     std::fstream file;
     file.open(filename, std::ios::in | std::ios::binary);
     if (!file.is_open()) {
         std::cerr << "Erro ao abrir o arquivo " << filename << std::endl;
         return CONTINUE;
     }
-    request.mutable_file_update()->mutable_data()->assign(std::istreambuf_iterator<char>(file),
-                                                          std::istreambuf_iterator<char>());
-    request.mutable_file_update()->set_hash(digest_to_string(getFileDigest(filename)));
-    Connection conn(*mainConn);
+    request.mutable_file_data_update()->set_data(std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()));
+    request.mutable_file_data_update()->mutable_file_update()->set_filename(filename);
+    request.mutable_file_data_update()->mutable_file_update()->set_deleted(false);
+    request.mutable_file_data_update()->mutable_file_update()->set_hash(digest_to_string(hash));
+
+    ClientConnection conn(*mainConn);
     conn.sendRequest(request);
     auto maybeResponse = conn.receiveResponse();
     if (!maybeResponse.has_value()) {
@@ -252,7 +300,7 @@ int download(char *path) {
     Request request;
     request.set_type(RequestType::DOWNLOAD);
     request.set_filename(path);
-    Connection conn(*mainConn);
+    ClientConnection conn(*mainConn);
     conn.sendRequest(request);
     auto maybeResponse = conn.receiveResponse();
     if (!maybeResponse.has_value()) {
@@ -261,18 +309,18 @@ int download(char *path) {
     }
     auto [header, response] = maybeResponse.value();
     if (response.type() == ResponseType::ERROR) {
-        printf("\nErro ao baixar arquivo do servidor: ", response.error_msg().c_str());
+        printf("\nErro ao baixar arquivo do servidor: %s\n", response.error_msg().c_str());
         return CONTINUE;
     }
 
-    if (response.type() == ResponseType::DATA ) {
+    if (response.type() == ResponseType::FILE_DATA_R) {
         std::fstream file;
         file.open(path, std::ios::out | std::ios::binary | std::ios::trunc);
         if (!file.is_open()) {
             printf("\nErro ao abrir o arquivo %s", path);
             return CONTINUE;
         }
-        file << response.file_update().data();
+        file << response.file_data().data();
         file.close();
         printf("\nArquivo %s baixado com sucesso.", path);
         return CONTINUE;
@@ -303,7 +351,7 @@ int ping() {
 }
 
 int listServer() {
-    Connection conn (*mainConn);
+    ClientConnection conn (*mainConn);
     Request request;
     request.set_type(RequestType::LIST);
     conn.sendRequest(request);
@@ -374,7 +422,7 @@ void *thread_monitoramento(void *arg) {
 }
 
 void *thread_updates(void *) {
-    Connection conn(*mainConn);
+    ClientConnection conn(*mainConn);
     Request r;
     r.set_type(RequestType::SUBSCRIBE);
     conn.sendRequest(r);
@@ -397,17 +445,48 @@ void *thread_updates(void *) {
                         muteUpdate = false;
                         continue;
                     }
-                    std::ofstream file(path,
-                                       std::ios::binary | std::ios::out | std::ios::trunc);
-                    file << res.file_update().data();
+                    // We need to download the file
+                    {
+                        ClientConnection conn(*mainConn);
+                        Request request;
+                        request.set_type(RequestType::DOWNLOAD);
+                        request.set_filename(res.file_update().filename());
+                        conn.sendRequest(request);
+                        auto maybeResponse = conn.receiveResponse();
+                        if (!maybeResponse.has_value()) {
+                            std::cerr << "Erro ao receber resposta do servidor" << std::endl;
+                            muteUpdate = false;
+                            continue;
+                        }
+                        auto [header, response] = maybeResponse.value();
+                        if (response.type() == ResponseType::ERROR) {
+                            std::cerr << "Erro ao baixar arquivo do servidor: " << response.error_msg() << std::endl;
+                            muteUpdate = false;
+                            continue;
+                        }
+
+                        if (response.type() == ResponseType::FILE_DATA_R) {
+                            std::fstream file;
+                            file.open(path, std::ios::out | std::ios::binary | std::ios::trunc);
+                            if (!file.is_open()) {
+                                std::cerr << "Erro ao abrir o arquivo " << path << std::endl;
+                                muteUpdate = false;
+                                continue;
+                            }
+                            file << response.file_data().data();
+                            file.close();
+                            std::cout << "File downloaded successfully" << std::endl;
+                        }
+
+                    }
                 }
                 muteUpdate = false;
             } else {
-                std::cout << "Error: Unexpected response type: " << res.type() << std::endl;
+                std::cout << "Error: Unexpected response type 2: " << res.type() << std::endl;
             }
         }
         else {
-            std::cout << "Error: Unexpected response" << std::endl;
+            std::cout << "Error: Unexpected response 1" << std::endl;
         }
     }
 

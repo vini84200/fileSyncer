@@ -5,7 +5,7 @@
 #include "ClientConnection.h"
 
 int ClientConnection::doLogin(std::string username, std::string password) {
-    sesstionId = -1;
+    sessionId = -1;
     if (currConnState != ConnectionState::CONNECTED) {
         return -1;
     }
@@ -33,9 +33,13 @@ int ClientConnection::doLogin(std::string username, std::string password) {
 
         if (resp.type() == LOGIN_OK) {
             // Extract token
-            sesstionId = resp.session_id();
+            sessionId = resp.session_id();
             return 0;
+        } else if (resp.type() == ERROR) {
+            printf("Login failed: %s\n", resp.error_msg().c_str());
+            return -1;
         } else {
+            printf("Invalid response type\n");
             return -1;
         }
     }
@@ -44,5 +48,9 @@ int ClientConnection::doLogin(std::string username, std::string password) {
 }
 
 bool ClientConnection::isLogged() {
-    return sesstionId != -1;
+    return sessionId != -1;
+}
+
+int ClientConnection::getSessionId() {
+    return sessionId;
 }
