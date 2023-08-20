@@ -6,6 +6,7 @@
 #include "../transactions/CreateSessionTransaction.h"
 #include "../transactions/CreateUserTransaction.h"
 #include "../transactions/FileChangeTransaction.h"
+#include "../transactions/NewFrontendTransaction.h"
 #include "../transactions/RemoveSessionTransaction.h"
 #include <fstream>
 
@@ -39,6 +40,23 @@ void ServiceRequestHandler::handleRequest() {
         Response response;
         response.set_type(PONG);
         sendMessage(response);
+        endConnection();
+        return;
+    } else if (r.type() == FRONTEND_SUBSCRIBE) {
+        // Create Transaction
+        auto transaction = new NewFrontendTransaction(r.frontend_subscription().hostname(), r.frontend_subscription().port());
+        bool ok = server->getTransactionManager().doTransaction(*transaction);
+        if (!ok) {
+            Response r;
+            r.set_type(ERROR);
+            r.set_error_msg("Error creating frontend");
+            sendMessage(r);
+            endConnection();
+            return;
+        }
+        Response r;
+        r.set_type(LOGIN_OK);
+        sendMessage(r);
         endConnection();
         return;
     }

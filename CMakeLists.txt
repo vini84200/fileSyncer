@@ -27,7 +27,6 @@ include_directories(${Protobuf_INCLUDE_DIRS})
 add_executable(
         fileSyncerServer
         src/server/main.cpp ${PROTO_SRCS} ${PROTO_HDRS}
-        src/server/service/ServerRequestHandler.cpp
         src/server/Server.cpp
         src/server/ServerState.cpp
         src/server/transactions/Transaction.cpp
@@ -48,6 +47,8 @@ add_executable(
         src/server/Election.cpp
         src/server/transactions/FileChangeTransaction.cpp
         src/server/transactions/FileChangeTransaction.h
+        src/server/transactions/NewFrontendTransaction.cpp
+        src/server/transactions/NewFrontendTransaction.h
 
 
 )

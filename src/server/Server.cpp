@@ -179,7 +179,19 @@ void Server::startCoordinator() {
     printf("We are the coordinator\n");
     transaction_manager.setIsCoordinator(true);
 
-    // TODO: Notify the other servers
+    // TODO: Notify the frontends
+    {
+        auto guard = getReadStateGuard();
+        for (auto &frontend: guard.get().getFrontends()) {
+            Connection<AdminMsg, AdminMsg> connection(
+                    frontend.getAdminConnectionArgs());
+            AdminMsg *msg = new AdminMsg();
+            msg->set_type(NEW_COORDINATOR);
+            msg->mutable_coordinatorinfo()->set_hostname(server_host);
+            msg->mutable_coordinatorinfo()->set_port(server_port);
+            connection.sendMessage(*msg);
+        }
+    }
 
     // Start the recovery process
 
