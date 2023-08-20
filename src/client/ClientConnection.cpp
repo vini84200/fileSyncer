@@ -35,7 +35,11 @@ int ClientConnection::doLogin(std::string username, std::string password) {
             // Extract token
             sessionId = resp.session_id();
             return 0;
+        } else if (resp.type() == ERROR) {
+            printf("Login failed: %s\n", resp.error_msg().c_str());
+            return -1;
         } else {
+            printf("Invalid response type\n");
             return -1;
         }
     }
