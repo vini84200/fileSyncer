@@ -37,6 +37,7 @@ enum ResponseType {
   PONG = 5;
   FILE_UPDATED = 6;
   FILE_DATA_R = 7;
+  SEND_FILE_DATA = 8;
 }
 
 message Response {
@@ -84,6 +85,7 @@ enum TransactionType {
   CREATE_USER = 0;
   CREATE_SESSION = 1;
   REMOVE_SESSION = 2;
+  FILE_CHANGE = 3;
 }
 
 enum TransactionOuterType {
@@ -106,6 +108,7 @@ message TransactionMsg {
   optional CreateUserTransactionMsg create_user = 3;
   optional CreateSessionTransactionMsg create_session = 4;
   optional RemoveSessionTransactionMsg remove_session = 5;
+  optional FileChangeTransactionMsg file_change = 6;
 }
 
 enum TransactionVote {
@@ -137,6 +140,13 @@ message RemoveSessionTransactionMsg {
   required int32 session_id = 1;
 }
 
+message FileChangeTransactionMsg {
+  required string filename = 2;
+  required string user = 3;
+  required bool deleted = 4;
+  optional bytes data = 5;
+}
+
 enum AdminMsgType {
   // Heartbeat request
   HEARTBEAT = 0;
@@ -144,7 +154,6 @@ enum AdminMsgType {
   ELECTION = 1;
   ELECTION_ANSWER = 2;
   ELECTION_COORDINATOR = 3;
-
 
 
 }
