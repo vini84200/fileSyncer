@@ -18,8 +18,8 @@
 #include "ClientListener.h"
 #include <openssl/sha.h>
 #include <sys/inotify.h>
-#define PORT 8989
-#define DAEMON_PORT 666
+#define PORT 9988
+#define DAEMON_PORT 6666
 #define EVENT_SIZE  (sizeof(struct inotify_event))
 #define BUF_INOTIFY_LEN (1024 * (EVENT_SIZE + 16))
 
@@ -54,6 +54,8 @@ void sendLogout();
 int showHostIp();
 
 void changeIP(std::string hostname, int port);
+
+std::string getHostname();
 
 void *get_in_addr(struct sockaddr *sa) {
     if (sa->sa_family == AF_INET) {
@@ -513,11 +515,12 @@ void changeIP(std::string hostname, int port){
     mainConn = new ClientConnection(cArgs);
     ClientConnection &conn = *mainConn;
 
-    printf("IP changed to %s:%d", hostname, port);
+    printf("IP changed to %s:%d", hostname.c_str(), port);
 }
 
 void *thread_daemon_listener(void *) {
-    ClientListener daemonListener("", DAEMON_PORT);
+
+    ClientListener daemonListener("0.0.0.0", DAEMON_PORT);
 
     printf("Daemon: ");
     daemonListener.start();
@@ -545,6 +548,34 @@ int main(int argc, char *argv[]) {
     ConnectionArgs cArgs = ConnectionArgs(argv[2], PORT, username, password);
     mainConn = new ClientConnection(cArgs);
     ClientConnection &conn = *mainConn;
+
+    {
+        // Send the fronted port[
+        Request request;
+        request.set_type(RequestType::FRONTEND_SUBSCRIBE);
+        std::string hostname = getHostname();
+        printf("Hostname: %s\n", hostname.c_str());
+        request.mutable_frontend_subscription()->set_hostname(hostname);
+        request.mutable_frontend_subscription()->set_port(DAEMON_PORT);
+        ClientConnection conn(*mainConn);
+        conn.sendRequest(request);
+
+        auto maybeResponse = conn.receiveResponse();
+        if (!maybeResponse.has_value()) {
+            printf("Error receiving response\n");
+            exit(1);
+        }
+        auto [header, response] = maybeResponse.value();
+        if (response.type() == ResponseType::ERROR) {
+            printf("Error: %s\n", response.error_msg().c_str());
+            exit(1);
+        }
+        if (response.type() == ResponseType::LOGIN_OK) {
+            printf("Frontend subscription ok\n");
+        }
+
+
+    }
 
     if (conn.getConnectionState() != ConnectionState::CONNECTED) {
         perror("Error connecting to server");
@@ -576,4 +607,11 @@ int main(int argc, char *argv[]) {
     delete mainConn;
 
     return 0;
+}
+
+std::string getHostname() {
+    char hostname[1024];
+    hostname[1023] = '\0';
+    gethostname(hostname, 1023);
+    return std::string(hostname);
 }

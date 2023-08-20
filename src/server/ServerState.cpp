@@ -251,3 +251,23 @@ ServerState::getUserSessions(const std::string &username) const {
     }
     return sessions;
 }
+
+void ServerState::addFrontend(std::string hostname, int port) {
+    frontend_connections.emplace_back(FrontendConnection {
+            std::move(hostname), port
+    });
+}
+
+std::vector<FrontendConnection> ServerState::getFrontends() const {
+    std::vector<FrontendConnection>  frontends;
+    for (const auto &frontend: frontend_connections) {
+        frontends.emplace_back(frontend);
+    }
+    return frontends;
+}
+
+ConnectionArgs FrontendConnection::getAdminConnectionArgs() {
+    return ConnectionArgs {
+            hostname, port, "", ""
+    };
+}

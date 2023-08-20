@@ -5,6 +5,7 @@
 #ifndef FILESYNCERCLIENT_SERVERSTATE_H
 #define FILESYNCERCLIENT_SERVERSTATE_H
 
+#include "../common/Connection.h"
 #include "../common/utils.h"
 #include <map>
 #include <string>
@@ -20,6 +21,12 @@ struct UserFile {
     bool deleted;
 };
 
+struct FrontendConnection {
+    std::string hostname;
+    int port;
+    ConnectionArgs getAdminConnectionArgs();
+};
+
 typedef std::map<std::string, UserFile> UserFileList;
 
 class ServerState {
@@ -33,8 +40,10 @@ private:
 
     // Last transaction id for each user that affected the server state
     std::map<std::string, int> users_last_tid{};
-    int last_tid = 0;
     std::map<std::string, UserFileList> user_files{};
+    std::vector<FrontendConnection> frontend_connections{};
+
+    int last_tid = 0;
 
 public:
     int getLastTid() const;
@@ -77,6 +86,9 @@ public:
                  UserFile file);
     std::vector<SessionId>
     getUserSessions(const std::string &username) const;
+    void addFrontend(std::string hostname, int port);
+    std::vector<FrontendConnection *> getFrontends();
+    std::vector<FrontendConnection> getFrontends() const;
 };
 
 

@@ -7,6 +7,7 @@
 #include "CreateSessionTransaction.h"
 #include "CreateUserTransaction.h"
 #include "FileChangeTransaction.h"
+#include "NewFrontendTransaction.h"
 #include "RemoveSessionTransaction.h"
 #include "Transaction.h"
 
@@ -32,6 +33,8 @@ void TransactionRequestHandler::handleRequest() {
             t = new RemoveSessionTransaction();
         } else if (tMsg.transaction().type() == TransactionType::FILE_CHANGE) {
             t = new FileChangeTransaction();
+        } else if (tMsg.transaction().type() == TransactionType::NEW_FRONTEND) {
+            t = new NewFrontendTransaction();
         } else {
             printf("Invalid transaction type received\n");
             return;

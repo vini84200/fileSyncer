@@ -9,6 +9,7 @@ enum RequestType {
   LOGOUT = 6;
   FILE_UPDATE = 7;
   FILE_DATA = 8;
+  FRONTEND_SUBSCRIBE = 9;
 }
 
 message Request {
@@ -25,7 +26,13 @@ message Request {
   optional FileUpdate file_update = 6;
 
   optional FileDataUpdate file_data_update = 7;
+  optional FrontendSubscription frontend_subscription = 8;
 
+}
+
+message FrontendSubscription {
+  required string hostname = 1;
+  required int32 port = 2;
 }
 
 enum ResponseType {
@@ -86,6 +93,7 @@ enum TransactionType {
   CREATE_SESSION = 1;
   REMOVE_SESSION = 2;
   FILE_CHANGE = 3;
+  NEW_FRONTEND = 4;
 }
 
 enum TransactionOuterType {
@@ -109,6 +117,7 @@ message TransactionMsg {
   optional CreateSessionTransactionMsg create_session = 4;
   optional RemoveSessionTransactionMsg remove_session = 5;
   optional FileChangeTransactionMsg file_change = 6;
+  optional NewFrontendMsg new_frontend = 7;
 }
 
 enum TransactionVote {
@@ -145,6 +154,11 @@ message FileChangeTransactionMsg {
   required string user = 3;
   required bool deleted = 4;
   optional bytes data = 5;
+}
+
+message NewFrontendMsg {
+  required string hostname = 1;
+  required int32 port = 2;
 }
 
 enum AdminMsgType {

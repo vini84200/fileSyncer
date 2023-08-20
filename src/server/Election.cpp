@@ -88,6 +88,8 @@ void Election::winElection() {
     for (auto &server : getServers()) {
         informVictory(server);
     }
+    // Inform all the frontends
+
     server->startCoordinator();
 
 }
