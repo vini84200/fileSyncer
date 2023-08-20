@@ -25,11 +25,11 @@ CreateSessionTransaction::CreateSessionTransaction(
     this->username = std::move(username);
 }
 
-void *CreateSessionTransaction::serialize(TransactionMsg *msg) {
-    msg->set_transaction_id(getTid());
-    msg->set_type(TransactionType::CREATE_SESSION);
-    msg->mutable_create_session()->set_session_id(sessionID);
-    msg->mutable_create_session()->set_username(username);
+void CreateSessionTransaction::serialize(TransactionMsg *out) {
+    out->set_transaction_id(getTid());
+    out->set_type(TransactionType::CREATE_SESSION);
+    out->mutable_create_session()->set_session_id(sessionID);
+    out->mutable_create_session()->set_username(username);
 }
 
 void CreateSessionTransaction::deserialize(

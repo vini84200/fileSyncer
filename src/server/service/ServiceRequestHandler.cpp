@@ -3,9 +3,9 @@
 //
 
 #include "ServiceRequestHandler.h"
-#include "../Server.h"
 #include "../transactions/CreateSessionTransaction.h"
 #include "../transactions/CreateUserTransaction.h"
+#include "../transactions/FileChangeTransaction.h"
 #include "../transactions/RemoveSessionTransaction.h"
 #include <fstream>
 
@@ -139,11 +139,24 @@ void ServiceRequestHandler::handleLogin(Request request,
         return;
     }
 
+
+
     // Create session id
     int session_id;
     {
         auto guard  = server->getReadStateGuard();
         auto &state = guard.get();
+
+        // Only two sessions per user
+        if (state.getUserSessions(request.username()).size() >= 2) {
+            Response r;
+            r.set_type(ERROR);
+            r.set_error_msg("Too many sessions");
+            sendMessage(r);
+            endConnection();
+            return;
+        }
+
         while (state.isSessionValid(session_id = rand()));
     }
 
@@ -201,9 +214,10 @@ void ServiceRequestHandler::handleSubscribe(Request request,
             printf("Sending file update %s for user %s\n",
                    file->filename.c_str(), user.c_str());
             Response r;
-            r.set_type(ResponseType::FILE_UPDATED);
+            r.set_type(ResponseType::UPDATED);
             r.mutable_file_update()->set_filename(file->filename);
             r.mutable_file_update()->set_hash(file->hash);
+            r.mutable_file_update()->set_deleted(file->deleted);
             bool ok = sendMessage(r);
             if (!ok) {
                 printf("Error sending file update\n");
@@ -309,9 +323,112 @@ void ServiceRequestHandler::handleLogout(Request request,
 void ServiceRequestHandler::handleFileUpdate(Request request,
                                              std::string user,
                                              Header header) {
+    // Received the file update with the hash
+    std::string filename = request.file_update().filename();
+    std::string hash = request.file_update().hash();
+    bool deleted = request.file_update().deleted();
+
+    if (deleted) {
+        printf("File deleted\n");
+        // Delete the file
+        byte_string empty = {0};
+        auto transaction = new FileChangeTransaction(user, filename,
+                                                     true, &empty);
+        bool ok = server->getTransactionManager().doTransaction(
+                *transaction);
+        if (!ok) {
+            Response r;
+            r.set_type(ERROR);
+            r.set_error_msg("Error deleting file");
+            sendMessage(r);
+            endConnection();
+            return;
+        } else {
+            Response r;
+            r.set_type(FILE_UPDATED);
+            sendMessage(r);
+            endConnection();
+            return;
+        }
+    }
+    {
+        // Check if the file exists
+        auto guard  = server->getReadStateGuard();
+        auto &state = guard.get();
+        printf("Received file update %s\n", filename.c_str());
+
+        if (state.hasFile(user, filename)) {
+            // Check if the hash is the same
+            if (state.getFileHash(user, filename) == hash) {
+                // Hash is the same, do nothing
+                printf("Hash is the same, do nothing\n");
+                Response r;
+                r.set_type(FILE_UPDATED);
+                sendMessage(r);
+                endConnection();
+                return;
+            }
+        }
+    }
+
+    // Ask the client to send the file
+    printf("Asking client to send the file\n");
+    Response r;
+    r.set_type(SEND_FILE_DATA);
+    sendMessage(r);
+
+    // Receive the file
+    auto msg = receiveRequest();
+    if (!msg.has_value()) {
+        printf("Error receiving request\n");
+        Response r;
+        r.set_type(ERROR);
+        r.set_error_msg("Error receiving request");
+        sendMessage(r);
+        endConnection();
+        return;
+    }
+    auto h = msg.value().first;
+    auto r2 = msg.value().second;
+    if (r2.type() != FILE_DATA) {
+        printf("Invalid request type\n");
+        Response r;
+        r.set_type(ERROR);
+        r.set_error_msg("Invalid request type");
+        sendMessage(r);
+        endConnection();
+        return;
+    }
+    handleUpload(r2, user, h);
 }
 
 void ServiceRequestHandler::handleUpload(Request request,
                                          std::string user,
                                          Header header) {
+    byte_string data =
+            (std::basic_string<unsigned char> &) request
+                    .file_data_update()
+                    .data();
+    // Create a transaction to update the file
+    auto transaction = new FileChangeTransaction(user,
+                                                 request.file_data_update().file_update().filename(),
+                                                 false,
+                                                    &data);
+    bool ok = server->getTransactionManager().doTransaction(*transaction);
+    if (!ok) {
+        Response r;
+        r.set_type(ERROR);
+        r.set_error_msg("Error updating file");
+        sendMessage(r);
+        endConnection();
+        return;
+    }
+    else
+    {
+        Response r;
+        r.set_type(FILE_UPDATED);
+        sendMessage(r);
+        endConnection();
+        return;
+    }
 }

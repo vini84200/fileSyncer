@@ -17,6 +17,7 @@ struct UserFile {
     std::string hash;
     int last_tid;
     int size;
+    bool deleted;
 };
 
 typedef std::map<std::string, UserFile> UserFileList;
@@ -69,6 +70,13 @@ public:
     bool hasFile(std::string username, std::string filename) const;
     const std::string getFileHash(std::string user,
                                    const std::string &filename) const;
+    void removeFile(std::string user, std::string filename);
+    void updateFile(std::string user, std::string filename,
+                    UserFile file);
+    void addFile(std::string user, std::string filename,
+                 UserFile file);
+    std::vector<SessionId>
+    getUserSessions(const std::string &username) const;
 };
 
 
