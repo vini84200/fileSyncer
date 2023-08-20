@@ -65,6 +65,9 @@ add_executable(
         fileSyncerClient
         src/client/mainClient.cpp
         src/client/ClientConnection.cpp
+        src/client/ClientListener.cpp
+        src/client/ClientRequestHandler.cpp
+
         ${PROTO_SRCS} ${PROTO_HDRS})
 target_link_libraries(
         fileSyncerClient

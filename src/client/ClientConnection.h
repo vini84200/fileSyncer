@@ -19,14 +19,18 @@ public:
         int rv;
         hostname = args.hostname;
         port = args.port;
-        rv = this->doLogin(args.username, args.password);
-        if (rv == -1) {
-            perror("Login failed");
-            currConnState = ConnectionState::CONNECTION_FAILURE;
-        }
-        if (getSessionId() == -1) {
-            printf("Login failed\n");
-            currConnState = ConnectionState::CONNECTION_FAILURE;
+        if (args.sessionId == -1){
+            rv = this->doLogin(args.username, args.password);
+            if (rv == -1) {
+                perror("Login failed");
+                currConnState = ConnectionState::CONNECTION_FAILURE;
+            }
+            if (getSessionId() == -1) {
+                printf("Login failed\n");
+                currConnState = ConnectionState::CONNECTION_FAILURE;
+            }
+        } else {
+            sessionId = args.sessionId;
         }
     }
     int doLogin(std::string username, std::string password);

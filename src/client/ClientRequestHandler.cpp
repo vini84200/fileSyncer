@@ -1,24 +1,20 @@
 #include "../server/interfaces/RequestHandler.h"
+#include "ClientRequestHandler.h"
 #include <string>
 #include <iostream>
 #include <unistd.h>
 
-class ClientRequestHandler : public RequestHandler<std::string> {
-    public:
-        ClientRequestHandler(int socket) : RequestHandler(socket) {}
+void changeIP(std::string hostname, int port);
 
-    protected:
-        void handleRequest() override{
-            char buff[256];
-            ssize_t bytes_read = read(client_fd, buff, sizeof(buff) -1 );
-            if(bytes_read <= 0) {
-                return;
-            }
-            buff[bytes_read] = '\0';
-            std::string message(buff);
+void ClientRequestHandler::handleRequest() {
+    auto msg = receiveRequest();
+    if (!msg.has_value()) {
+        printf("Error receiving request\n");
+        endConnection();
+        return;
+    }
+    auto h = msg.value().first;
+    auto r = msg.value().second;
 
-            if (message == "change_IP"){
-                std::cout << "Change IP Request Received" << std::endl;
-            }
-        }
-};
+    if (r.type() == AdminMsgType::NEW_COORDINATOR) { changeIP(r.coordinatorinfo().hostname(), r.coordinatorinfo().port()); }
+}

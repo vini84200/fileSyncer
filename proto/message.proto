@@ -155,10 +155,17 @@ enum AdminMsgType {
   ELECTION_ANSWER = 2;
   ELECTION_COORDINATOR = 3;
 
+  NEW_COORDINATOR = 4;
 
 }
 
 message AdminMsg {
   required AdminMsgType type = 1;
   optional int32 sender_id = 2;
+  optional CoordinatorInfo coordinatorInfo = 3;
+}
+
+message CoordinatorInfo{
+  required string hostname = 1;
+  required int32 port = 2;
 }

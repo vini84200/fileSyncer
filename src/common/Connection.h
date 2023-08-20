@@ -21,12 +21,22 @@ struct ConnectionArgs {
     std::string username;
     std::string password;
 
+    int sessionId = -1;
+
     ConnectionArgs(
             std::string hostname,
             int port,
             std::string username,
             std::string password
     ) : hostname(hostname), port(port), username(username), password(password) {};
+
+    ConnectionArgs(
+            std::string hostname,
+            int port,
+            std::string username,
+            std::string password,
+            int sessionId
+    ) : hostname(hostname), port(port), username(username), password(password), sessionId(sessionId) {};
 
     ConnectionArgs(
             std::string hostname,

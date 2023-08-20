@@ -6,9 +6,9 @@
 #include <iostream>
 #include <unistd.h>
 
-class ClientRequestHandler : public RequestHandler<std::string> {
+class ClientRequestHandler : public RequestHandler<AdminMsg> {
 public:
-    ClientRequestHandler(int socket);
+    ClientRequestHandler(int socket) : RequestHandler(socket) {};
 
 protected:
     void handleRequest() override;

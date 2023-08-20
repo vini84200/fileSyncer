@@ -1,9 +1,9 @@
 #include "ClientListener.h"
 
 ClientListener::ClientListener(const std::string& host, int port) 
-    : Listener<std::string>(host, port) {}
+    : Listener<AdminMsg>(host, port) {}
 
-RequestHandler<std::string>* ClientListener::createRequestHandler(int socket) {
+RequestHandler<AdminMsg>* ClientListener::createRequestHandler(int socket) {
     return new ClientRequestHandler(socket);
 }
 

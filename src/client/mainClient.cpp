@@ -53,7 +53,7 @@ void sendLogout();
 
 int showHostIp();
 
-int changeIP();
+void changeIP(std::string hostname, int port);
 
 void *get_in_addr(struct sockaddr *sa) {
     if (sa->sa_family == AF_INET) {
@@ -504,11 +504,17 @@ void *thread_front_end(void *) {
     return nullptr;
 }
 
-int changeIP(){
-    printf("IP changed to...");
-    return 0;
-}
+void changeIP(std::string hostname, int port){
+    int sessionIdTemp = mainConn->sessionId;
 
+    delete mainConn;
+
+    ConnectionArgs cArgs = ConnectionArgs(hostname, port, username, password, sessionIdTemp);
+    mainConn = new ClientConnection(cArgs);
+    ClientConnection &conn = *mainConn;
+
+    printf("IP changed to %s:%d", hostname, port);
+}
 
 void *thread_daemon_listener(void *) {
     ClientListener daemonListener("", DAEMON_PORT);
