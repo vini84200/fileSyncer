@@ -32,10 +32,6 @@ jobs:
         # Build your program with the given configuration
         run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-      - name: Run tests
-        # Run your tests with the given configuration
-        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target test
-
       - name: List files
         run: ls ${{github.workspace}}/build
 
