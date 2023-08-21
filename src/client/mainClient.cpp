@@ -16,7 +16,6 @@
 #include "ClientConnection.h"
 #include "proto/message.pb.h"
 #include "ClientListener.h"
-#include <openssl/sha.h>
 #include <sys/inotify.h>
 #define PORT 9988
 #define DAEMON_PORT 6666
