@@ -3,3 +3,6 @@
 *.pdf
 /build/
 peda-session-*
+config.txt
+/cmake-build-debug/
+/cmake-build-release/

@@ -78,9 +78,10 @@ public:
         return buffer.data();
     }
 
-    Message(Request request);
-
-    Message(Response response);
+    template<typename T>
+    Message(T req) {
+        buffer = req.SerializeAsString();
+    }
 };
 
 class SealedMessage {

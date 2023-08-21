@@ -8,6 +8,8 @@ enum RequestType {
   LOGIN = 5;
   LOGOUT = 6;
   FILE_UPDATE = 7;
+  FILE_DATA = 8;
+  FRONTEND_SUBSCRIBE = 9;
 }
 
 message Request {
@@ -23,6 +25,14 @@ message Request {
   // File Update
   optional FileUpdate file_update = 6;
 
+  optional FileDataUpdate file_data_update = 7;
+  optional FrontendSubscription frontend_subscription = 8;
+
+}
+
+message FrontendSubscription {
+  required string hostname = 1;
+  required int32 port = 2;
 }
 
 enum ResponseType {
@@ -33,12 +43,13 @@ enum ResponseType {
   FILE_LIST = 4;
   PONG = 5;
   FILE_UPDATED = 6;
+  FILE_DATA_R = 7;
+  SEND_FILE_DATA = 8;
 }
 
 message Response {
   required ResponseType type = 1;
   // ERROR
-  optional string error_message = 4;
   // UPLOAD | DOWNLOAD | LIST | UPDATED
   optional string error_msg = 2;
   // LOGIN
@@ -47,10 +58,13 @@ message Response {
   optional FileUpdate file_update = 5;
   // FILE LIST
   optional FileList file_list = 6;
+  // FILE DATA
+  optional FileData file_data = 7;
 }
 
 message FileDescriptor {
   required string filename = 1;
+  optional bytes hash = 2;
 }
 
 message FileList {
@@ -59,12 +73,113 @@ message FileList {
 
 message FileData {
   required FileDescriptor file = 1;
-  required string data = 2;
+  required bytes data = 2;
 }
 
 message FileUpdate {
   required string filename = 1;
   required bool deleted = 2;
-  required bytes data = 3;
-  required bytes hash = 4;
+  required bytes hash = 3;
+}
+
+message FileDataUpdate {
+  required FileUpdate file_update = 1;
+  required bytes data = 2;
+}
+
+
+enum TransactionType {
+  CREATE_USER = 0;
+  CREATE_SESSION = 1;
+  REMOVE_SESSION = 2;
+  FILE_CHANGE = 3;
+  NEW_FRONTEND = 4;
+}
+
+enum TransactionOuterType {
+  TRANSACTION = 0;
+  TRANSACTION_VOTE = 1;
+  TRANSACTION_RESULT = 2;
+  TRANSACTION_OK_ACK = 3;
+}
+
+message TransactionOuterMsg {
+  required TransactionOuterType type = 1;
+  optional TransactionMsg transaction = 2;
+  optional TransactionVoteMsg vote = 3;
+  optional TransactionResultMsg result = 4;
+}
+
+message TransactionMsg {
+  required TransactionType type = 1;
+  required int32 transaction_id = 2;
+  optional CreateUserTransactionMsg create_user = 3;
+  optional CreateSessionTransactionMsg create_session = 4;
+  optional RemoveSessionTransactionMsg remove_session = 5;
+  optional FileChangeTransactionMsg file_change = 6;
+  optional NewFrontendMsg new_frontend = 7;
+}
+
+enum TransactionVote {
+  COMMIT = 0;
+  ROLLBACK = 1;
+}
+
+message TransactionVoteMsg {
+  required TransactionVote vote = 1;
+  required int32 transaction_id = 2;
+}
+
+message TransactionResultMsg {
+  required int32 transaction_id = 1;
+  required TransactionVote result = 2;
+}
+
+message CreateUserTransactionMsg {
+  required string username = 1;
+  required string password = 2;
+}
+
+message CreateSessionTransactionMsg {
+  required int32 session_id = 1;
+  required string username = 2;
+}
+
+message RemoveSessionTransactionMsg {
+  required int32 session_id = 1;
+}
+
+message FileChangeTransactionMsg {
+  required string filename = 2;
+  required string user = 3;
+  required bool deleted = 4;
+  optional bytes data = 5;
+}
+
+message NewFrontendMsg {
+  required string hostname = 1;
+  required int32 port = 2;
+}
+
+enum AdminMsgType {
+  // Heartbeat request
+  HEARTBEAT = 0;
+  // Leader Election
+  ELECTION = 1;
+  ELECTION_ANSWER = 2;
+  ELECTION_COORDINATOR = 3;
+
+  NEW_COORDINATOR = 4;
+
+}
+
+message AdminMsg {
+  required AdminMsgType type = 1;
+  optional int32 sender_id = 2;
+  optional CoordinatorInfo coordinatorInfo = 3;
+}
+
+message CoordinatorInfo{
+  required string hostname = 1;
+  required int32 port = 2;
 }
