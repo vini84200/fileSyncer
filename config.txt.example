@@ -1,10 +1,10 @@
 server_id: 1
-server_port: 8989
+server_port: 9988
 server_admin_port: 8998
 server_transaction_port: 8999
-server_host: 0.0.0.0
-warmup_time: 5
+server_host: 192.168.191.86
+warmup_time: 15
 syncer_dir: .syncer/
 # Comments are allowed
 other_servers_ip:
-- 3 231.122.233.11 1002 1003 1004 # Id IP ServicePort AdminPort TransactionPort
+- 2 192.168.191.45 9988 8998 8999 

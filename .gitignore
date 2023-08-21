@@ -6,3 +6,4 @@ peda-session-*
 config.txt
 /cmake-build-debug/
 /cmake-build-release/
+.cache

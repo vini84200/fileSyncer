@@ -19,37 +19,44 @@ private:
     int servicePort;
     int transactionPort;
     bool isCoordinator = false;
-    bool isAlive = true;
+    bool isAlive       = true;
     int lastTid;
     long lastHeartbeat;
 
-    Server* server;
+    Server *server;
 
     pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
 public:
-    Replica(int id, std::string host, int adminPort, int servicePort, int transactionPort, Server* server)
-        : id(id), host(std::move(host)), adminPort(adminPort), servicePort(servicePort), transactionPort(transactionPort), server(server){
+    Replica(int id, std::string host, int adminPort, int servicePort,
+            int transactionPort, Server *server)
+        : id(id), host(std::move(host)), adminPort(adminPort),
+          servicePort(servicePort), transactionPort(transactionPort),
+          server(server) {
         isCoordinator = false;
     }
 
-    Replica(int id, std::string host, int adminPort, int servicePort, int transactionPort, bool isCoordinator)
-        : id(id), host(std::move(host)), adminPort(adminPort), servicePort(servicePort), transactionPort(transactionPort), isCoordinator(isCoordinator) {
-    }
+    Replica(int id, std::string host, int adminPort, int servicePort,
+            int transactionPort, bool isCoordinator)
+        : id(id), host(std::move(host)), adminPort(adminPort),
+          servicePort(servicePort), transactionPort(transactionPort),
+          isCoordinator(isCoordinator) {}
 
     bool checkAliveBlocking();
-    bool checkAlive();
-    static void* checkAliveRunThread(void* replica);
+    void checkAlive();
+    static void *checkAliveRunThread(void *replica);
 
     ConnectionArgs getServiceConnectionArgs() {
         return ConnectionArgs(host, servicePort);
     }
+
     ConnectionArgs getAdminConnectionArgs() {
         return ConnectionArgs(host, adminPort);
     }
+
     ConnectionArgs getTransactionConnectionArgs() {
         return ConnectionArgs(host, transactionPort);
     }
-
 
     // Getters and Setters
 

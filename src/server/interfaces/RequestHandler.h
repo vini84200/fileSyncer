@@ -9,11 +9,12 @@
 #include "../../common/MessageComunication.h"
 #include "proto/message.pb.h"
 #include <csignal>
+#include <cstdio>
 #include <optional>
 #include <string>
 #include <sys/socket.h>
 
-template <typename T>
+template<typename T>
 class RequestHandler {
 protected:
     int client_fd;
@@ -24,6 +25,7 @@ protected:
 
     bool receiveBytes(char *bytes, size_t bytes_to_receive);
     std::optional<std::pair<Header, std::string>> receiveMsg();
+
 public:
     RequestHandler(int socket);
     RequestHandler(sockaddr_storage client_addr, int client_fd);
@@ -32,8 +34,8 @@ public:
     std::optional<std::pair<Header, T>> receiveRequest();
 
     bool sendMessage(Message msg);
-    pthread_t start();
-    bool endConnection();
+    void start();
+    void endConnection();
     void stop();
 };
 
@@ -117,9 +119,9 @@ void *run(void *args) {
 }
 
 template<typename T>
-pthread_t RequestHandler<T>::start() {
+void RequestHandler<T>::start() {
     if (pthread_create(&thread_, nullptr, run<T>, this) != 0) {
-        perror("Error creating thread");
+        printf("Unable to create thread");
         exit(1);
     }
 }
@@ -127,11 +129,11 @@ pthread_t RequestHandler<T>::start() {
 template<typename T>
 RequestHandler<T>::RequestHandler(sockaddr_storage client_addr,
                                   int client_fd)
-        : client_fd(client_fd) {
+    : client_fd(client_fd) {
 }
 
 template<typename T>
-bool RequestHandler<T>::endConnection() {
+void RequestHandler<T>::endConnection() {
     close(client_fd);
 }
 
