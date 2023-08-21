@@ -612,7 +612,7 @@ void *thread_daemon_listener(void *) {
 // https://beej.us/guide/bgnet/html/split-wide/client-server-background.html
 int main(int argc, char *argv[]) {
     GOOGLE_PROTOBUF_VERIFY_VERSION;
-    if (argc != 4) {
+    if (argc != 5) {
         fprintf(stderr,
                 "usage: fileSyncerClient username hostname port "
                 "localHostname\n");
