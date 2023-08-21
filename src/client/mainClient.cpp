@@ -482,94 +482,103 @@ void *thread_monitoramento(void *arg) {
 }
 
 void *thread_updates(void *) {
-    ClientConnection conn(*mainConn);
-    Request r;
-    r.set_type(RequestType::SUBSCRIBE);
-    conn.sendRequest(r);
-    while (conn.getConnectionState() == ConnectionState::CONNECTED &&
-           notExit) {
-        auto response = conn.receiveResponse();
-        if (response.has_value()) {
-            auto [h, res] = response.value();
-            if (res.type() == ResponseType::UPDATED) {
-                std::cout
-                        << "Update: " << res.file_update().filename()
-                        << std::endl;
-                std::string path = syncDirPath + "/" +
-                                   res.file_update().filename();
-                muteUpdate = true;
-                if (res.file_update().deleted()) {
-                    std::remove(path.c_str());
-                } else {
-                    // Check the hash
-                    FileDigest hash = getFileDigest(path);
+    while (true) {
+        ClientConnection conn(*mainConn);
+        Request r;
+        r.set_type(RequestType::SUBSCRIBE);
+        conn.sendRequest(r);
+        while (conn.getConnectionState() ==
+                       ConnectionState::CONNECTED &&
+               notExit) {
+            auto response = conn.receiveResponse();
+            if (response.has_value()) {
+                auto [h, res] = response.value();
+                if (res.type() == ResponseType::UPDATED) {
+                    std::cout << "Update: "
+                              << res.file_update().filename()
+                              << std::endl;
+                    std::string path = syncDirPath + "/" +
+                                       res.file_update().filename();
+                    muteUpdate = true;
+                    if (res.file_update().deleted()) {
+                        std::remove(path.c_str());
+                    } else {
+                        // Check the hash
+                        FileDigest hash = getFileDigest(path);
 
-                    if (digest_to_string(hash) ==
-                        res.file_update().hash()) {
-                        std::cout << "File already up to date"
-                                  << std::endl;
-                        muteUpdate = false;
-                        continue;
-                    }
-                    // We need to download the file
-                    {
-                        ClientConnection conn(*mainConn);
-                        Request request;
-                        request.set_type(RequestType::DOWNLOAD);
-                        request.set_filename(
-                                res.file_update().filename());
-                        conn.sendRequest(request);
-                        auto maybeResponse = conn.receiveResponse();
-                        if (!maybeResponse.has_value()) {
-                            std::cerr << "Erro ao receber resposta "
-                                         "do servidor"
+                        if (digest_to_string(hash) ==
+                            res.file_update().hash()) {
+                            std::cout << "File already up to date"
                                       << std::endl;
                             muteUpdate = false;
                             continue;
                         }
-                        auto [header, response] =
-                                maybeResponse.value();
-                        if (response.type() == ResponseType::ERROR) {
-                            std::cerr << "Erro ao baixar arquivo do "
-                                         "servidor: "
-                                      << response.error_msg()
-                                      << std::endl;
-                            muteUpdate = false;
-                            continue;
-                        }
-
-                        if (response.type() ==
-                            ResponseType::FILE_DATA_R) {
-                            std::fstream file;
-                            file.open(path, std::ios::out |
-                                                    std::ios::binary |
-                                                    std::ios::trunc);
-                            if (!file.is_open()) {
+                        // We need to download the file
+                        {
+                            ClientConnection conn(*mainConn);
+                            Request request;
+                            request.set_type(RequestType::DOWNLOAD);
+                            request.set_filename(
+                                    res.file_update().filename());
+                            conn.sendRequest(request);
+                            auto maybeResponse =
+                                    conn.receiveResponse();
+                            if (!maybeResponse.has_value()) {
                                 std::cerr
-                                        << "Erro ao abrir o arquivo "
-                                        << path << std::endl;
+                                        << "Erro ao receber resposta "
+                                           "do servidor"
+                                        << std::endl;
                                 muteUpdate = false;
                                 continue;
                             }
-                            file << response.file_data().data();
-                            file.close();
-                            std::cout
-                                    << "File downloaded successfully"
-                                    << std::endl;
+                            auto [header, response] =
+                                    maybeResponse.value();
+                            if (response.type() ==
+                                ResponseType::ERROR) {
+                                std::cerr << "Erro ao baixar arquivo "
+                                             "do "
+                                             "servidor: "
+                                          << response.error_msg()
+                                          << std::endl;
+                                muteUpdate = false;
+                                continue;
+                            }
+
+                            if (response.type() ==
+                                ResponseType::FILE_DATA_R) {
+                                std::fstream file;
+                                file.open(path,
+                                          std::ios::out |
+                                                  std::ios::binary |
+                                                  std::ios::trunc);
+                                if (!file.is_open()) {
+                                    std::cerr << "Erro ao abrir o "
+                                                 "arquivo "
+                                              << path << std::endl;
+                                    muteUpdate = false;
+                                    continue;
+                                }
+                                file << response.file_data().data();
+                                file.close();
+                                std::cout << "File downloaded "
+                                             "successfully"
+                                          << std::endl;
+                            }
                         }
                     }
+                    muteUpdate = false;
+                } else {
+                    std::cout << "Error: Unexpected response type 2: "
+                              << res.type() << std::endl;
                 }
-                muteUpdate = false;
             } else {
-                std::cout << "Error: Unexpected response type 2: "
-                          << res.type() << std::endl;
+                std::cout << "Error: Unexpected response 1"
+                          << std::endl;
             }
-        } else {
-            std::cout << "Error: Unexpected response 1" << std::endl;
         }
-    }
 
-    return nullptr;
+        return nullptr;
+    }
 }
 
 void *thread_front_end(void *) {

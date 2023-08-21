@@ -23,15 +23,16 @@ void AdminRequestHandler::handleRequest() {
     }
 
     if (r.type() == AdminMsgType::ELECTION_ANSWER) {
-        server->getElection().receiveAnswer(r.sender_id());
+        if (server->hasElection())
+            server->getElection().receiveAnswer(r.sender_id());
     }
 
     if (r.type() == AdminMsgType::ELECTION_COORDINATOR) {
         if (server->hasElection()) {
             // We are in an election
-            server->getElection().receiveCoordinatorMessage(r.sender_id());
-        }
-        else {
+            server->getElection().receiveCoordinatorMessage(
+                    r.sender_id());
+        } else {
             // We are not in an election
             // Set the coordinator
             server->setCoordinator(r.sender_id());
